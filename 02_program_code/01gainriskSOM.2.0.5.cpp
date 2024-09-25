@@ -77,6 +77,10 @@
 
 /* MACROS */
 
+// input file names
+#define CONFIG_FILE_PATH "../03_test_data/configuration_2.0.0.csv"
+#define PARAMETER_FILE_PATH "../03_test_data/parameters_2.0.0.csv"
+
 // output precision
 #define FIO_PRECISION 12
 
@@ -576,8 +580,8 @@ public:
     bool locateRanges() // loads the parameter file 
     {
         // set the parameter and nametable filenames
-        std::string configFileName = "configuration_2.0.0.csv";
-        std::string param2FileName = "parameters_2.0.0.csv";
+        std::string configFileName = CONFIG_FILE_PATH;
+        std::string param2FileName = PARAMETER_FILE_PATH;
         
         // reading model controls
         std::cout << std::endl;
