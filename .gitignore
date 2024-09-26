@@ -2,3 +2,4 @@
 *_OUTPUT_*
 *.dSYM
 garisom205
+env/*
