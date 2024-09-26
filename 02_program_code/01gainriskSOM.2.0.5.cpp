@@ -5409,7 +5409,8 @@ int main()
     ModelProgram *mainProg = new ModelProgram;
     
     // seed the random number generator with something crazy
-    srand((unsigned)(time(0) * time(0)));
+    // srand((unsigned)(time(0) * time(0)));
+    srand(42);
     // set the cout decimal precision
     std::cout.precision(12);
 
