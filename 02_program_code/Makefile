@@ -9,9 +9,9 @@
 all: garisom205
  
 garisom205: 01gainriskSOM.2.0.5.cpp
-	g++ -std=c++11 -O3 -ffast-math 01gainriskSOM.2.0.5.cpp \
+	g++ -std=c++11 -g -O3 -ffast-math 01gainriskSOM.2.0.5.cpp \
 	02Soils.cpp \
-	-o garisom205
+	-o garisom205 -Wall
 
 clean:
 	rm -rf garisom205
