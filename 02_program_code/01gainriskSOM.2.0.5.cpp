@@ -5304,7 +5304,7 @@ public:
             if (successCode == 0)
             {
                 std::cout << "Unrecoverable model failure!" << std::endl;
-                return 0; // failure, unrecoverable
+                return 1; // failure, unrecoverable
             }
             else if (successCode > 0) // this returns the year if we've incremented it -- not necessary in the full C version (also only supports 1 year right now)
             {
@@ -5422,7 +5422,7 @@ int main()
     mainProg->stage_ID = STAGE_ID_NONE;
     result = mainProg->modelProgramMain(); // for returning failure error codes... not really used in this version
 
-    if (!result)
+    if (result)
     {
         std::cout << std::endl;
         std::cout << "Model Failure! Stage " << mainProg->stage_ID << std::endl;
@@ -5435,5 +5435,5 @@ int main()
         std::cout << "Model Success! Stage " << mainProg->stage_ID << std::endl;
         delete mainProg;
     }
-    return 1;
+    return 0;
 }
