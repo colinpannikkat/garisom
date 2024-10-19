@@ -1,10 +1,30 @@
 // Functions to calculate soil parameters at start
 #include "02Soils.h"
 
+void RhizosphereComponent::setVanGenAlpha(double alpha) {
+    this->van_gen_alpha = alpha;
+}
+double RhizosphereComponent::getVanGenAlpha() { return van_gen_alpha; }
+
+void RhizosphereComponent::setVanGenN(double n) {
+    this->van_gen_n = n;
+}
+double RhizosphereComponent::getVanGenN() { return van_gen_n; }
+
+void RhizosphereComponent::setThetasat(double thetasat) {
+    this->thetasat = thetasat;
+}
+double RhizosphereComponent::getThetaSat() { return thetasat; }
+
+double RhizosphereComponent::vg(double pressure) {
+    double vp = 1 / (pow((van_gen_alpha * pressure), van_gen_n) + 1);
+    return this->getKmax() * pow(vp, ((van_gen_n - 1) / (2 * van_gen_n))) * pow((pow((1 - vp), ((van_gen_n - 1) / van_gen_n)) - 1), 2);
+}
+
 /*Get Van Genuchten alpha // override if provided*/
 // This function obtains the Van Genuchten parameters for a given texture
 void soils::get_vgparams(std::string &texture, long &layers, std::string (&soillayersTable)[2001][101], long &rowLR, long &colLR) {
-    std::string a, n,soilkmax, thetasat;
+    std::string a, n, soilkmax, thetasat;
     if (texture == "sand"){
         a = "1479.5945"; 
         n = "2.68";
@@ -79,3 +99,4 @@ void soils::get_vgparams(std::string &texture, long &layers, std::string (&soill
         soillayersTable[rowLR + k][colLR + 6] = thetasat;
     }
 }
+
