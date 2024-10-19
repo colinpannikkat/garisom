@@ -32,11 +32,11 @@ class Plant {
         HydraulicsModel hydraulics;
         CarbonAssimilationModel carbon;
         Parameters param;       // all running parameters
-        CSVData config_data;
-        CSVData param_data;
-        CSVData data;           // up to 2000k rows and 100 columns of input data
-        CSVData sum_data;
-        CSVData gs_data;
+        CSVData<std::string> config_data;
+        CSVData<std::string> param_data;
+        CSVData<double> gs_data;
+        CSVData<double> data;           // up to 2000k rows and 100 columns of input data
+        CSVData<double> sum_data;
 
         // Model Variables
         std::string stageNames[STAGE_ID_FUT_STRESS_NOACCLIM + 1] = {"standard"},

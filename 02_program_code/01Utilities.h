@@ -57,10 +57,21 @@
 #define ABS_PAR 0.8                 // Absorptivity of PAR for leaves
 #define ABS_NIR 0.2                 // Absorptivity of near infrared for leaves
 
+/**
+ * @class CSVData
+ * @brief A class to handle CSV data, including reading headers and data, and accessing and setting column values.
+ * 
+ * This class provides functionalities to read CSV files, store the data in a structured format,
+ * and access or modify the data using column names and row indices. Can only instantiate with <std::string>
+ * or <double> types.
+ * 
+ * @tparam T The type of data stored in the CSV.
+ */
+template <typename T>
 class CSVData {
     private:
         std::unordered_map<std::string, int> header;
-        std::vector<std::vector<std::string>> data;
+        std::vector<std::vector<T>> data;
 
     public:
         CSVData() {};
@@ -75,19 +86,26 @@ class CSVData {
         int row_size();
         int col_size();
         
-        std::string getColumnValue(const std::string& column_name, int row=0);
+        // Generic getter, used when accessing numerical data
+        T getColumnValue(const std::string& column_name, int row=0);
+
+        // Overloaded getter for when accessing data that is stored in string format and requires conversion
+        // Typically required if class is instantiated with <std::string> type
         bool getColumnValue(std::string &store, const std::string &column_name, int row=0);
         bool getColumnValue(double &store, const std::string &column_name, int row=0);
         bool getColumnValue(bool &store, const std::string& column_name, int row=0);
         bool getColumnValue(int &store, const std::string &column_name, int row=0);
 
-        bool setColumnValue(std::string value, int row, const std::string &column_name);
-
+        // Generic setter, will set as template type, therein it is important that the type
+        // of data matches the CSVData type
+        bool setColumnValue(T value, int row, const std::string &column_name);
 };
 
-bool locateRanges(CSVData &config_data, CSVData &param_data);
-void readGSSheet(CSVData &gs_data, std::string &gs_file_name);
-void readGrowSeasonData(Parameters &param, CSVData &gs_data);
-void readDataSheet(CSVData &data, CSVData &sum_data, std::string &data_file_name, std::string &header_file_name, std::string &sum_head_file_name);
+// template <> std::string CSVData<std::string>::getColumnValue(const std::string &column_name, int row);
+
+bool locateRanges(CSVData<std::string> &config_data, CSVData<std::string> &param_data);
+void readGSSheet(CSVData<double> &gs_data, std::string &gs_file_name);
+void readGrowSeasonData(Parameters &param, CSVData<double> &gs_data);
+void readDataSheet(CSVData<double> &data, CSVData<double> &sum_data, std::string &data_file_name, std::string &header_file_name, std::string &sum_head_file_name);
 
 #endif

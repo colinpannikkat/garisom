@@ -64,7 +64,8 @@ std::string trim(const std::string& str) {
  * 
  * @param data_file A reference to an input file stream object representing the CSV file.
  */
-void CSVData::readHeader(std::ifstream &data_file) {
+template <typename T>
+void CSVData<T>::readHeader(std::ifstream &data_file) {
     std::string line;
 
     // Read header
@@ -81,7 +82,7 @@ void CSVData::readHeader(std::ifstream &data_file) {
 }
 
 /**
- * @brief Reads data from a CSV file and stores it in the CSVData object.
+ * @brief Reads data from a CSV file and stores it in the CSVData object as string.
  * 
  * This function reads each line from the provided input file stream, parses the line into cells
  * separated by commas, and stores the non-empty cells in a vector. Each vector of cells (representing
@@ -89,7 +90,8 @@ void CSVData::readHeader(std::ifstream &data_file) {
  * 
  * @param data_file The input file stream from which to read the CSV data.
  */
-void CSVData::readData(std::ifstream &data_file) {
+template <>
+void CSVData<std::string>::readData(std::ifstream &data_file) {
     std::string line;
     
     // Read data
@@ -108,6 +110,34 @@ void CSVData::readData(std::ifstream &data_file) {
 }
 
 /**
+ * @brief Reads data from a CSV file and stores it in the CSVData object as double.
+ * 
+ * This function reads each line from the provided input file stream, parses the line into cells
+ * separated by commas, and stores the non-empty cells in a vector. Each vector of cells (representing
+ * a row) is then added to the data member of the CSVData object.
+ * 
+ * @param data_file The input file stream from which to read the CSV data.
+ */
+template <>
+void CSVData<double>::readData(std::ifstream &data_file) {
+    std::string line;
+    
+    // Read data
+    while (getline(data_file, line)) {
+        std::stringstream ss(line);
+        std::string cell;
+        std::vector<double> row;
+        while (getline(ss, cell, ',')) {
+            if (cell.empty() || cell == "\0" || cell == "\r") continue;
+            row.push_back(toDouble(cell));
+        }
+        if (row.size() == 0) continue;  // for some reason this is some data with 
+                                        // invisible character that needs to be ignored
+        data.push_back(row);
+    }
+}
+
+/**
  * @brief Constructs a CSVData object and initializes it by reading data from the specified file.
  * 
  * This constructor attempts to open the specified CSV file and read its contents. If the file
@@ -117,7 +147,8 @@ void CSVData::readData(std::ifstream &data_file) {
  * 
  * @throws std::runtime_error If the file cannot be opened.
  */
-CSVData::CSVData(const std::string& data_file_name) {
+template <typename T>
+CSVData<T>::CSVData(const std::string& data_file_name) {
             
     std::ifstream data_file(data_file_name);
 
@@ -147,7 +178,8 @@ CSVData::CSVData(const std::string& data_file_name) {
  * @param header_file_name The name of the header file to be read.
  * @param skip_first A boolean flag indicating whether to skip the first line of the data file. Default is true.
  */
-CSVData::CSVData(const std::string &data_file_name, const std::string &header_file_name, bool skip_first/*=true*/) {
+template <typename T>
+CSVData<T>::CSVData(const std::string &data_file_name, const std::string &header_file_name, bool skip_first/*=true*/) {
     std::ifstream data_file(data_file_name);
     
     if (!data_file.is_open()) {
@@ -172,8 +204,6 @@ CSVData::CSVData(const std::string &data_file_name, const std::string &header_fi
         std::exit(1);
     }
 
-    
-
     readHeader(header_file);
     readData(data_file);
 }
@@ -186,7 +216,8 @@ CSVData::CSVData(const std::string &data_file_name, const std::string &header_fi
  * 
  * @return true if the CSV data is empty, false otherwise.
  */
-bool CSVData::empty() {
+template <typename T>
+bool CSVData<T>::empty() {
     return data.empty();
 }
 
@@ -200,7 +231,8 @@ bool CSVData::empty() {
  *
  * @param page_size The number of rows to display per page.
  */
-void CSVData::print(size_t page_size) {
+template <typename T>
+void CSVData<T>::print(size_t page_size) {
     size_t total_rows = data.size();
     size_t total_pages = (total_rows + page_size - 1) / page_size;
 
@@ -256,6 +288,66 @@ void CSVData::print(size_t page_size) {
 }
 
 /**
+ * @brief Prints the CSV data in a paginated format.
+ *
+ * This function prints the CSV data with a specified number of rows per page.
+ * It displays the column headers at the top of each page and clears the terminal
+ * screen before printing each page. The user can navigate through the pages by
+ * pressing any key to continue or 'q' to quit.
+ *
+ * @param page_size The number of rows to display per page.
+ */
+template <>
+void CSVData<double>::print(size_t page_size) {
+    size_t total_rows = data.size();
+    size_t total_pages = (total_rows + page_size - 1) / page_size;
+
+    // Print column headers in order
+    std::vector<std::string> ordered_headers(header.size());
+    for (const auto& pair : header) {
+        ordered_headers[pair.second] = pair.first;
+    }
+    for (const auto& column : ordered_headers) {
+        std::cout << column << "\t";
+    }
+    std::cout << std::endl;
+
+    for (size_t page = 0; page < total_pages; ++page) {
+        size_t start_row = page * page_size;
+        size_t end_row = std::min(start_row + page_size, total_rows);
+
+        // Clear the terminal screen
+        std::cout << "\033[2J\033[1;1H";
+
+        // Print column headers again for each page
+        for (const auto& header : ordered_headers) {
+            std::cout << std::setw(5) << header << "\t";
+        }
+        std::cout << std::endl;
+
+        std::cout << "Page " << (page + 1) << " of " << total_pages << std::endl;
+
+        // Print rows
+        for (size_t row = start_row; row < end_row; ++row) {
+            for (const auto& cell : data[row])
+                std::cout << std::setw(10) << std::fixed << std::setprecision(4) << cell << "\t";
+            std::cout << std::endl;
+        }
+
+        std::cout << std::endl;
+
+        if (page < total_pages - 1) {
+            std::cout << "Press any key to continue to the next page or 'q' to quit: ";
+            char c;
+            std::cin >> c;
+            if (c == 'q' || c == 'Q') {
+                break;
+            }
+        }
+    }
+}
+
+/**
  * @brief Returns the number of rows in the CSV data.
  * 
  * This function calculates and returns the total number of rows
@@ -263,7 +355,8 @@ void CSVData::print(size_t page_size) {
  * 
  * @return int The number of rows in the CSV data.
  */
-int CSVData::row_size() {
+template <typename T>
+int CSVData<T>::row_size() {
     return data.size();
 }
 
@@ -276,7 +369,8 @@ int CSVData::row_size() {
  * 
  * @return int The number of columns in the CSV data.
  */
-int CSVData::col_size() {
+template <typename T>
+int CSVData<T>::col_size() {
     return data[0].size();
 }
 
@@ -292,7 +386,8 @@ int CSVData::col_size() {
  * @return std::string The value of the specified column in the given row. 
  *         Returns an empty string if the column name does not exist.
  */
-std::string CSVData::getColumnValue(const std::string &column_name, int row/*=0*/) {
+template <>
+std::string CSVData<std::string>::getColumnValue(const std::string &column_name, int row/*=0*/) {
     assert(row < data.size());
     if (header.find(column_name) != header.end()) {
         int col_index = header[column_name];
@@ -302,6 +397,31 @@ std::string CSVData::getColumnValue(const std::string &column_name, int row/*=0*
         fprintf(stderr, "Column name %s does not exist\n", column_name.c_str());
     }
     return "";
+}
+
+/**
+ * @brief Retrieves the value of a specified column in a given row.
+ * 
+ * This function fetches the value from the CSV data for the specified row and column name.
+ * It asserts that the row index is within the bounds of the data and that the column name exists.
+ * If the column name does not exist, an error message is printed to stderr.
+ * 
+ * @param column_name The name of the column from which to retrieve the value.
+ * @param row The index of the row from which to retrieve the value. Default is 0.
+ * @return std::string The value of the specified column in the given row. 
+ *         Returns an empty string if the column name does not exist.
+ */
+template <>
+double CSVData<double>::getColumnValue(const std::string &column_name, int row/*=0*/) {
+    assert(row < data.size());
+    if (header.find(column_name) != header.end()) {
+        int col_index = header[column_name];
+        assert(col_index < data[row].size());
+        return data[row][col_index];
+    } else {
+        fprintf(stderr, "Column name %s does not exist\n", column_name.c_str());
+    }
+    return 0.0;
 }
 
 /**
@@ -319,7 +439,8 @@ std::string CSVData::getColumnValue(const std::string &column_name, int row/*=0*
  * @param row The index of the row from which to retrieve the value. Default is 0.
  * @return true if the value is successfully retrieved, false otherwise.
  */
-bool CSVData::getColumnValue(std::string &store, const std::string &column_name, int row/*=0*/) {
+template <>
+bool CSVData<std::string>::getColumnValue(std::string &store, const std::string &column_name, int row/*=0*/) {
     assert(row < data.size());
     if (header.find(column_name) != header.end()) {
         int col_index = header[column_name];
@@ -344,7 +465,8 @@ bool CSVData::getColumnValue(std::string &store, const std::string &column_name,
  * @param row The row index from which to retrieve the value. Default is 0.
  * @return true if the value was successfully retrieved and converted to an integer, false otherwise.
  */
-bool CSVData::getColumnValue(int &store, const std::string &column_name, int row/*=0*/) {
+template <>
+bool CSVData<std::string>::getColumnValue(int &store, const std::string &column_name, int row/*=0*/) {
     std::string value;
     getColumnValue(value, column_name, row);
     if (value == "") {
@@ -370,7 +492,8 @@ bool CSVData::getColumnValue(int &store, const std::string &column_name, int row
  * @param row The row index from which to retrieve the value. Default is 0.
  * @return true if the value was successfully retrieved and converted to an integer, false otherwise.
  */
-bool CSVData::getColumnValue(bool &store, const std::string &column_name, int row/*=0*/) {
+template <>
+bool CSVData<std::string>::getColumnValue(bool &store, const std::string &column_name, int row/*=0*/) {
     std::string value;
     getColumnValue(value, column_name, row);
     if (value == "") {
@@ -394,7 +517,8 @@ bool CSVData::getColumnValue(bool &store, const std::string &column_name, int ro
  * @param column_name The name of the column from which to retrieve the value.
  * @return true if the value was successfully retrieved and converted to a double, false if the value was an empty string.
  */
-bool CSVData::getColumnValue(double &store, const std::string &column_name, int row/*=0*/) {
+template <>
+bool CSVData<std::string>::getColumnValue(double &store, const std::string &column_name, int row/*=0*/) {
     std::string value;
     getColumnValue(value, column_name, row);
     if (value == "") {
@@ -413,7 +537,8 @@ bool CSVData::getColumnValue(double &store, const std::string &column_name, int 
  * @param column_name The name of the column where the value should be set.
  * @return true if the value is successfully set.
  */
-bool CSVData::setColumnValue(std::string value, int row, const std::string &column_name) {
+template <typename T>
+bool CSVData<T>::setColumnValue(T value, int row, const std::string &column_name) {
     int col_index = header[column_name];
     data[row][col_index] = value;
     return true;
@@ -430,7 +555,7 @@ bool CSVData::setColumnValue(std::string value, int row, const std::string &colu
  * @param param_data Reference to a CSVData object where the parameter data will be stored.
  * @return true if the operation is successful.
  */
-bool locateRanges(CSVData &config_data, CSVData &param_data) {
+bool locateRanges(CSVData<std::string> &config_data, CSVData<std::string> &param_data) {
     // Set the parameter and nametable filenames
     std::string config_file_name = CONFIG_FILE_PATH;
     std::string param_file_name = PARAMETER_FILE_PATH;
@@ -439,11 +564,11 @@ bool locateRanges(CSVData &config_data, CSVData &param_data) {
     std::cout << std::endl;
     std::cout << "Reading model configuration from " << config_file_name << std::endl;
 
-    config_data = CSVData(config_file_name);
+    config_data = CSVData<std::string>(config_file_name);
 
     std::cout << "Reading parameters from " << param_file_name << std::endl;
 
-    param_data = CSVData(param_file_name);       
+    param_data = CSVData<std::string>(param_file_name);       
 
     return true;
 }
@@ -460,7 +585,7 @@ bool locateRanges(CSVData &config_data, CSVData &param_data) {
  * @note If the file cannot be opened, an error message will be printed to the console.
  * @note If no file name is provided, a message indicating that the load is being skipped will be printed to the console.
  */
-void readGSSheet(CSVData &gs_data, std::string &gs_file_name) {
+void readGSSheet(CSVData<double> &gs_data, std::string &gs_file_name) {
 
     gs_data.empty();
 
@@ -475,7 +600,7 @@ void readGSSheet(CSVData &gs_data, std::string &gs_file_name) {
 
         std::cout << "Opened GS RANGE file " << gs_file_name << std::endl;
 
-        gs_data = CSVData(gs_file_name);
+        gs_data = CSVData<double>(gs_file_name);
         
         std::cout << "Finished GS RANGE read." << std::endl;
         std::cout << std::endl;
@@ -501,30 +626,28 @@ void readGSSheet(CSVData &gs_data, std::string &gs_file_name) {
  * @param header_file_name The name of the file containing the header information for the main data.
  * @param sum_header_file_name The name of the file containing the header information for the summary data.
  */
-void readDataSheet(CSVData &data, CSVData &sum_data, std::string &data_file_name, std::string &header_file_name, std::string &sum_header_file_name) {
+void readDataSheet(CSVData<double> &data, CSVData<double> &sum_data, std::string &data_file_name, std::string &header_file_name, std::string &sum_header_file_name) {
 
-    data = CSVData(data_file_name, header_file_name);
-    sum_data = CSVData(data_file_name, sum_header_file_name);
+    data = CSVData<double>(data_file_name, header_file_name);
+    sum_data = CSVData<double>(data_file_name, sum_header_file_name);
 
     std::cout << "Finished climate DATA read." << std::endl;
 }
 
-void readGrowSeasonData(Parameters &param, CSVData &gs_data) {
+void readGrowSeasonData(Parameters &param, CSVData<double> &gs_data) {
     int n_rows = gs_data.row_size();
     int temp_int = 0;
-    double temp_double = 0.0;
 
     for (int i = 0; i < n_rows; i++) {
-        gs_data.getColumnValue(temp_int, "Year", i);
+        temp_int = gs_data.getColumnValue("Year", i);
         param.setGsArYear(i, temp_int);
 
-        gs_data.getColumnValue(temp_int, "Start_day", i);
+        temp_int = gs_data.getColumnValue("Start_day", i);
         param.setGsArStart(i, temp_int);
 
-        gs_data.getColumnValue(temp_int, "End_day", i);
+        temp_int = gs_data.getColumnValue("End_day", i);
         param.setGsArEnd(i, temp_int);
 
-        gs_data.getColumnValue(temp_double, "ca_ppm", i);
-        param.setGsArPpm(i, temp_double);
+        param.setGsArPpm(i, gs_data.getColumnValue("ca_ppm", i));
     }
 }
