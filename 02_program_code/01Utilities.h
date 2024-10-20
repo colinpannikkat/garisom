@@ -39,6 +39,7 @@
 #define DATAFILE_MAXCOLS 101
 #define CONFIGFILE_MAXROWS 10
 #define CONFIGFILE_MAXCOLS 101
+#define CURVE_MAX 100001
 
 // constants
 #define PROFT_MAX_RUN_MEAN 1        // running mean for profit maximization
@@ -101,11 +102,10 @@ class CSVData {
         bool setColumnValue(T value, int row, const std::string &column_name);
 };
 
-// template <> std::string CSVData<std::string>::getColumnValue(const std::string &column_name, int row);
-
 bool locateRanges(CSVData<std::string> &config_data, CSVData<std::string> &param_data);
 void readGSSheet(CSVData<double> &gs_data, std::string &gs_file_name);
 void readGrowSeasonData(Parameters &param, CSVData<double> &gs_data);
 void readDataSheet(CSVData<double> &data, CSVData<double> &sum_data, std::string &data_file_name, std::string &header_file_name, std::string &sum_head_file_name);
+void readSiteAreaValues();
 
 #endif

@@ -2,6 +2,7 @@
 
 Plant::Plant(int stage) {
     stage_id = stage;
+    std::cout.precision(FIO_PRECISION);
 }
 
 void Plant::setConfig() { // sets up model configuration
@@ -555,6 +556,8 @@ void Plant::readin() { //'inputs and calculates all parameters at the start
         std::cout << "Weibull parameter after accounting for previous year PLC: " << std::endl;
         std::cout << "stem b: " << b_temp << " stem c: " << c_temp << std::endl;
     }
+    xylem.stem.setCwb(c_temp);
+    xylem.stem.setBwb(b_temp);
     
     // LEAVES, no histeresis in leaves. Leaf xylem can be replaced//refilled more actively.
     //p12_l = param_data.getColumnValue(temp, "i_leafP12",species_no);
@@ -591,7 +594,7 @@ void Plant::readin() { //'inputs and calculates all parameters at the start
     {
         temp = 0.00075; // default, override if it's zero
     }
-    param.setModelParam(temp, "pinc");
+    param.setModelParam(temp, "p_inc");
     
     // photosynthesis
     param_data.getColumnValue(temp, "i_lightComp",species_no); // light compensation point in ppfd
@@ -801,4 +804,8 @@ void Plant::readin() { //'inputs and calculates all parameters at the start
     xylem.rough = 0.01; //soil Zm, eqn 14.9, using table 5.1 for smooth surface, cm
     xylem.zdispl = 6.5 * xylem.rough; // soil d, eqn 14.9, using d = 6.5 Zm, eq 5.2,5.3
     xylem.zh = 0.2 * xylem.rough; // roughness for temperature
+}
+
+void Plant::componentPCrits() {
+    xylem.calc_net_flow(param.getModelParam("p_inc"), param.getModelParam("k_min"));
 }

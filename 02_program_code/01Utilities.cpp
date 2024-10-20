@@ -266,9 +266,9 @@ void CSVData<T>::print(size_t page_size) {
             for (const auto& cell : data[row]) {
             try {
                 double num = std::stod(cell);
-                std::cout << std::setw(10) << std::fixed << std::setprecision(4) << num << "\t";
+                std::cout << std::setw(FIO_PRECISION+5) << std::fixed << std::setprecision(FIO_PRECISION) << num << "\t";
             } catch (const std::invalid_argument&) {
-                std::cout << std::setw(10) << cell << "\t";
+                std::cout << std::setw(FIO_PRECISION+5) << cell << "\t";
             }
             }
             std::cout << std::endl;
@@ -330,7 +330,7 @@ void CSVData<double>::print(size_t page_size) {
         // Print rows
         for (size_t row = start_row; row < end_row; ++row) {
             for (const auto& cell : data[row])
-                std::cout << std::setw(10) << std::fixed << std::setprecision(4) << cell << "\t";
+                std::cout << std::setw(FIO_PRECISION+5) << std::fixed << std::setprecision(FIO_PRECISION) << cell << "\t";
             std::cout << std::endl;
         }
 
@@ -372,6 +372,30 @@ int CSVData<T>::row_size() {
 template <typename T>
 int CSVData<T>::col_size() {
     return data[0].size();
+}
+
+/**
+ * @brief Retrieves the value of a specified column in a given row.
+ * 
+ * This function fetches the value from the CSV data for the specified row and column name.
+ * It asserts that the row index is within the bounds of the data and that the column name exists.
+ * If the column name does not exist, an error message is printed to stderr.
+ * 
+ * @param column_name The name of the column from which to retrieve the value.
+ * @param row The index of the row from which to retrieve the value. Default is 0.
+ * @return std::string The value of the specified column in the given row. 
+ *         Returns an empty string if the column name does not exist.
+ */
+template <typename T>
+T CSVData<T>::getColumnValue(const std::string &column_name, int row/*=0*/) {
+    assert(row < data.size());
+    if (header.find(column_name) != header.end()) {
+        int col_index = header[column_name];
+        assert(col_index < data[row].size());
+        return data[row][col_index];
+    } else {
+        fprintf(stderr, "Column name %s does not exist\n", column_name.c_str());
+    }
 }
 
 /**
@@ -650,4 +674,7 @@ void readGrowSeasonData(Parameters &param, CSVData<double> &gs_data) {
 
         param.setGsArPpm(i, gs_data.getColumnValue("ca_ppm", i));
     }
+}
+
+void readSiteAreaValues() {
 }

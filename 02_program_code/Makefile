@@ -9,10 +9,10 @@ EXEC = main
 all: $(EXEC)
 
 $(EXEC): $(OBJ)
-	$(CXX) $(LDFLAGS) -o $@ $(OBJ) $(LBLIBS)
+	$(CXX) $(CXXFLAGS) -o $@ $(OBJ) $(LBLIBS)
 
 garisom205: 01gainriskSOM.2.0.5.cpp
-	g++ ${DEBUGFLAGS} 01gainriskSOM.2.0.5.cpp \
+	g++ ${CXXFLAGS} 01gainriskSOM.2.0.5.cpp \
 	02Soils.cpp \
 	04Component.cpp \
 	-o garisom205
