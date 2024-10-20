@@ -11,3 +11,8 @@ double XylemComponent::fatigue(double &b_wb, const double &sapwood_t, const doub
     double recoveryRate = sapwood_t * (conduit_d/10); // conduitD has to be in the right units! ()
     return (b_wb * (100 - max_plc_x)) / (recoveryRate + (100 - max_plc_x));
 }
+
+void XylemComponent::calc_net_flow(const double &p_inc, const double &k_min) {
+    stem.calc_flow_rate(p_inc, k_min);
+    stem.printCurveToFile(k_min, "stem_curve.csv");
+}

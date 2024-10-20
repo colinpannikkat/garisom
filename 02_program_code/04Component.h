@@ -13,6 +13,7 @@
 #include <cstring>
 #include <unordered_map>
 #include <assert.h>
+#include "01Utilities.h"
 
 /*
     This implementation follows Sperry et al. 2016
@@ -30,9 +31,12 @@ class Component {
                 res_percent,    // percent resistances at ksat
                 res_wb,         // weibull resistance, 1/cond_wb
                 cond_wb,        // weibull conductance, 1/res_wb           
-                k_max;          // kmax, conductance per basal area
+                k_max,          // kmax, conductance per basal area
                                 // ksat used interchangably
+                p_crit;
         std::vector<double> wb_fatigue;
+        double e_p[CURVE_MAX] = {0}; // E(P) curve for component
+        double k[CURVE_MAX] = {0};   // K (conductivity) curve for component
 
     public:
 
@@ -57,7 +61,7 @@ class Component {
         /* 
             Weibull function.
         */
-       double wb(double pressure);
+       double wb(const double &pressure);
 
         /* 
 
@@ -74,22 +78,40 @@ class Component {
                 - Hydraulic conductance of component: k
 
         */
-        double& calc_hydraulic_conductance(double *K_max, double &P, double &b_wb, double &c_wb);
+        double& calc_hydraulic_conductance(double *K_max, double &P);
 
         /*
         
-            Calculates steady-state flow rate, E_i, for a component
+            Calculates steady-state flow rate, E_i(P), for a component
 
             E_i = \int_{P_up}^{P_down}{k(P)_i}dP
 
             Inputs:
-                - Downstream pressure: P_down
-                - Upstream pressure: P_up
+                - p_inc: Increment for pressure in Reimann integration
+                - k_min: Minimum conductivity amount
 
             Outputs:
-                - Steady-state flow rate: E_i
+                - Steady-state flow rate: e_p
         */ 
-       double &calc_flow_rate(double &P_down, double &P_up);
+        void calc_flow_rate(const double &p_inc, const double &k_min);
+
+        void trapzdwb(const double &p1, const double &p2, double &s, const int &t, int &it);
+        void qtrapwb(double &p1, double &p2, double &s);
+
+        void printCurveToFile(const double &k_min, const std::string &filename) const {
+            std::ofstream outFile(filename);
+            if (!outFile) {
+            std::cerr << "Error opening file: " << filename << std::endl;
+            return;
+            }
+
+            outFile << "k_min,E(P)" << std::endl;
+            for (int i = 0; i < CURVE_MAX; ++i) {
+            outFile << k_min * i << "," << e_p[i] << std::endl;
+            }
+
+            outFile.close();
+        }
 };
 
 #endif

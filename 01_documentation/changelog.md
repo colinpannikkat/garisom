@@ -3,8 +3,11 @@ Changelog as of 09/23/24
 
 ## 10/19/24 (3.0.0)
 * Began refactoring code, converted to classes with distinct header files following OOP principles
-* Changed storage of parameters from CSV based to hashmaps for more efficient access when running the model
+* Changed storage of parameters to hashmap for more efficient access when running the model
+* Created new CSVData with data accessible via column string lookup
 * Changed dataheader columns to more usable formatting
+* Started porting over componentpcrits()
+  * Added E(P) (water supply / transpiration flow rate) approximations to Component class
 
 ## 09/26/24 (2.0.7)
 * Added a constant seed for random to allow for easier reproducibility

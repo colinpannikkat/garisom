@@ -195,6 +195,7 @@ class Plant {
         void initModelVars();
         void cleanModelVars();
         void readin();
+        void componentPCrits();
 };
 
 #endif

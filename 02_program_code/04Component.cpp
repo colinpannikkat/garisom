@@ -1,6 +1,6 @@
 #include "04Component.h"
 
-double Component::wb(double pressure) {
+double Component::wb(const double &pressure) {
     return k_max * exp(-(pow((pressure / b_wb), c_wb)));
 }
 
@@ -33,4 +33,60 @@ void Component::setFatigue(int index, double value) {
         wb_fatigue.resize(index + 1);
     }
     wb_fatigue[index] = value;
+}
+
+void Component::trapzdwb(const double &p1, const double &p2, double &s, const int &t, int &it) { //integrates root element z weibull
+
+    double sum = 0, x = 0, del = 0;
+
+    if (t == 0)
+    {
+        s = 0.5 * (p2 - p1) * (wb(p1) + wb(p2));
+        it = 1;
+    }
+    else
+    {
+        del = (p2 - p1) / it;
+        x = p1 + 0.5 * del;
+        sum = 0;
+        for (int j = 0; j < it; j++)
+        {
+            sum = sum + wb(x);
+            x = x + del;
+        }
+        s = 0.5 * (s + (p2 - p1) * sum / it);
+        it = 2 * it;
+    }
+}
+
+void Component::qtrapwb(double &p1, double &p2, double &s) { //'evaluates accuracy of root element z integration
+    int it = 0;    // keeping track of iterations
+    double olds = -1; //'starting point unlikely to satisfy if statement below
+    for (int t = 0; t < TRAP_ITER_MAX; t++)
+    {
+        trapzdwb(p1, p2, s, t, it);
+        if (std::abs(s - olds) <= (EPSX * std::abs(olds)))
+            return;
+        olds = s;
+    }
+}
+
+void Component::calc_flow_rate(const double &p_inc, const double &k_min) {
+    memset(e_p, 0, sizeof(e_p));
+
+    double p1 = 0, p2 = 0, s = 0, e = 0, k = 0;
+    int i = 1;
+    e_p[0] = 0;
+    do {
+        p2 = p1 + p_inc;
+        qtrapwb(p1, p2, s);
+        e += s;
+        e_p[i] = e;
+        k = wb(p2); //weibull k
+        p1 = p2; //reset p1 for next increment
+        i += 1;
+        if (i == 100000)
+            break;
+    } while (!(k < k_min));
+    p_crit = p2;
 }
