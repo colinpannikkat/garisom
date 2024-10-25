@@ -16,9 +16,78 @@ void RhizosphereComponent::setThetasat(double thetasat) {
 }
 double RhizosphereComponent::getThetaSat() { return thetasat; }
 
+
+/**
+ * @brief Calculates the van Genuchten (vg) function for a given pressure.
+ *
+ * This function computes the van Genuchten function, which is commonly used 
+ * in soil science to describe the relationship between soil water content 
+ * and soil water potential (pressure). The function uses the van Genuchten 
+ * parameters (alpha and n) and the maximum hydraulic conductivity (k_max) 
+ * to perform the calculation.
+ *
+ * @param pressure The soil water potential (pressure) for which the vg function is calculated.
+ * @return The calculated value of the van Genuchten function for the given pressure.
+ */
 double RhizosphereComponent::vg(double pressure) {
     double vp = 1 / (pow((van_gen_alpha * pressure), van_gen_n) + 1);
-    return this->getKmax() * pow(vp, ((van_gen_n - 1) / (2 * van_gen_n))) * pow((pow((1 - vp), ((van_gen_n - 1) / van_gen_n)) - 1), 2);
+    return k_max * pow(vp, ((van_gen_n - 1) / (2 * van_gen_n))) * pow((pow((1 - vp), ((van_gen_n - 1) / van_gen_n)) - 1), 2);
+}
+
+void RhizosphereComponent::trapzd(const double &p1, const double &p2, double &s, const int &t, int &it) { //integrates root element z weibull
+
+    double sum = 0, x = 0, del = 0;
+
+    if (t == 0)
+    {
+        s = 0.5 * (p2 - p1) * (vg(p1) + vg(p2));
+        it = 1;
+    }
+    else
+    {
+        del = (p2 - p1) / it;
+        x = p1 + 0.5 * del;
+        sum = 0;
+        for (int j = 0; j < it; j++)
+        {
+            sum = sum + vg(x);
+            x = x + del;
+        }
+        s = 0.5 * (s + (p2 - p1) * sum / it);
+        it = 2 * it;
+    }
+}
+
+void RhizosphereComponent::qtrap(double &p1, double &p2, double &s) { //'evaluates accuracy of root element z integration
+    int it = 0;    // keeping track of iterations
+    double olds = -1; //'starting point unlikely to satisfy if statement below
+    for (int t = 0; t < TRAP_ITER_MAX; t++)
+    {
+        trapzd(p1, p2, s, t, it);
+        if (std::abs(s - olds) < (0.001 * std::abs(olds))) // changing EPSX to 0.001 is the only reason for redeclaration
+            return;
+        olds = s;
+    }
+}
+
+void RhizosphereComponent::calc_flow_rate(const double &p_inc, const double &k_min) {
+
+    double p1 = 0, p2 = 0, s = 0, e = 0;
+    int i = 1;
+    this->e_p[0] = 0;
+    this->k[0] = k_max;
+    do {
+        p2 = p1 + p_inc;
+        qtrap(p1, p2, s);
+        e += s;
+        this->e_p[i] = e;
+        this->k[i] = vg(p2); //weibull k
+        p1 = p2; //reset p1 for next increment
+        i += 1;
+        if (i == 100000)
+            break;
+    } while (!(this->k[i - 1] < k_min));
+    this->p_crit = p2;
 }
 
 /*Get Van Genuchten alpha // override if provided*/

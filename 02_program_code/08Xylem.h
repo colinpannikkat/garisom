@@ -43,6 +43,7 @@ class XylemComponent {
         StemComponent stem;
         SoilLayer top_soil;
         std::vector<SoilLayer*> soils;
+        int num_layers;
 
         /* Used for something! */
         double rough,

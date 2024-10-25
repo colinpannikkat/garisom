@@ -24,7 +24,7 @@
 
 class Component {
     
-    private:
+    protected:
 
         double  b_wb,           // b for weibull
                 c_wb,           // c for weibull
@@ -33,10 +33,12 @@ class Component {
                 cond_wb,        // weibull conductance, 1/res_wb           
                 k_max,          // kmax, conductance per basal area
                                 // ksat used interchangably
-                p_crit;
+                p_crit;         // critical pressure, of VC
         std::vector<double> wb_fatigue;
-        double e_p[CURVE_MAX] = {0}; // E(P) curve for component
-        double k[CURVE_MAX] = {0};   // K (conductivity) curve for component
+        double e_p[CURVE_MAX] = {0};    // E(P) curve for component
+        double k[CURVE_MAX] = {0};      // K (conductivity) curve for component
+        double k_v[CURVE_MAX] = {0};    // Virgin K (conductivity) curve for component
+        double k_comp[CURVE_MAX] = {0}; // New(conductivity) curve for component based on other components
 
     public:
 
@@ -59,11 +61,6 @@ class Component {
         void setFatigue(int index, double value);
 
         /* 
-            Weibull function.
-        */
-       double wb(const double &pressure);
-
-        /* 
 
             Calculates hydraulic conductance of component, via a weibull function.
 
@@ -78,7 +75,7 @@ class Component {
                 - Hydraulic conductance of component: k
 
         */
-        double& calc_hydraulic_conductance(double *K_max, double &P);
+        double wb(const double &pressure);
 
         /*
         
@@ -95,19 +92,19 @@ class Component {
         */ 
         void calc_flow_rate(const double &p_inc, const double &k_min);
 
-        void trapzdwb(const double &p1, const double &p2, double &s, const int &t, int &it);
-        void qtrapwb(double &p1, double &p2, double &s);
+        void trapzd(const double &p1, const double &p2, double &s, const int &t, int &it);
+        void virtual qtrap(double &p1, double &p2, double &s);
 
-        void printCurveToFile(const double &k_min, const std::string &filename) const {
+        void printCurveToFile(const double &p_inc, const std::string &filename) const {
             std::ofstream outFile(filename);
             if (!outFile) {
             std::cerr << "Error opening file: " << filename << std::endl;
             return;
             }
 
-            outFile << "k_min,E(P)" << std::endl;
-            for (int i = 0; i < CURVE_MAX; ++i) {
-            outFile << k_min * i << "," << e_p[i] << std::endl;
+            outFile << "p_inc,E(P)" << std::endl;
+            for (int i = 0; p_inc * i <= this->p_crit; ++i) {
+            outFile << p_inc * i << "," << e_p[i] << std::endl;
             }
 
             outFile.close();

@@ -36,6 +36,10 @@ class RhizosphereComponent : public Component {
 
         double vg(double pressure);
 
+        void trapzd(const double &p1, const double &p2, double &s, const int &t, int &it);
+        void qtrap(double &p1, double &p2, double &s);
+        void calc_flow_rate(const double &p_inc, const double &k_min);
+
         /*
 
             Calculates hydraulic conductance, via a van Genuchten function.

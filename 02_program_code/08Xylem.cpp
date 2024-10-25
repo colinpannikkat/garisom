@@ -13,6 +13,10 @@ double XylemComponent::fatigue(double &b_wb, const double &sapwood_t, const doub
 }
 
 void XylemComponent::calc_net_flow(const double &p_inc, const double &k_min) {
+    for (int z = 0; z < this->num_layers; z++) {
+        soils[z]->rhizosphere.calc_flow_rate(p_inc, k_min);
+    }
+    soils[0]->rhizosphere.printCurveToFile(p_inc, "rhizo_curve.csv");
     stem.calc_flow_rate(p_inc, k_min);
-    stem.printCurveToFile(k_min, "stem_curve.csv");
+    stem.printCurveToFile(p_inc, "stem_curve.csv");
 }

@@ -658,6 +658,16 @@ void readDataSheet(CSVData<double> &data, CSVData<double> &sum_data, std::string
     std::cout << "Finished climate DATA read." << std::endl;
 }
 
+/**
+ * @brief Reads grow season data from a CSVData object and populates the Parameters object.
+ *
+ * This function iterates over each row in the provided CSVData object and extracts the values
+ * for "Year", "Start_day", "End_day", and "ca_ppm". These values are then used to populate
+ * the corresponding fields in the Parameters object.
+ *
+ * @param param Reference to a Parameters object that will be populated with the grow season data.
+ * @param gs_data Reference to a CSVData<double> object containing the grow season data.
+ */
 void readGrowSeasonData(Parameters &param, CSVData<double> &gs_data) {
     int n_rows = gs_data.row_size();
     int temp_int = 0;

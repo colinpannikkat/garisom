@@ -284,7 +284,7 @@ void Plant::cleanModelVars() {
 
 /* Get Van Genuchten alpha // override if provided */
 // This function obtains the Van Genuchten parameters for a given texture
-void get_vgparams(std::string texture, double &layers, std::vector<SoilLayer*> &soils) {
+void get_vgparams(std::string texture, const double &layers, std::vector<SoilLayer*> &soils) {
     double a, n, soilkmax, thetasat;
     if (texture == "sand"){
         a = 1479.5945; 
@@ -473,19 +473,19 @@ void Plant::readin() { //'inputs and calculates all parameters at the start
             b_fatigue[0][0] = b_temp; // current year "fresh xylem"
             // accounting for drought stress in previous year (1 year old)
             b_fatigue[0][1] = xylem.fatigue(b_temp, 
-                                                            param.getModelParam("sapwood_t"), 
-                                                            param.getModelParam("conduit_d"),
-                                                            max_plc_x);
+                                            param.getModelParam("sapwood_t"), 
+                                            param.getModelParam("conduit_d"),
+                                            max_plc_x);
             b_temp = ((b_fatigue[0][0] * 1.0) + (b_fatigue[0][1] * 0.75)) / (1.0 + 0.75); // updated parameter b for roots
         } else if (gs_yearIndex == 2) 
         {
             b_fatigue[0][0] = b_temp; // current year "fresh xylem"
             b_fatigue[0][2] = b_fatigue[0][1]; // previous year ring now 1 year older (2 years old)
             b_fatigue[0][1] = (xylem.fatigue(b_temp, 
-                                                            param.getModelParam("sapwood_t"), 
-                                                            param.getModelParam("conduit_d"),
-                                                            max_plc_x)); // accounting for drought stress in previous year (1 year old)
-            b_temp = ((b_fatigue[0][0] * 1.0) + (b_fatigue[0][1] * 0.75) + (b_fatigue[0][2] * 0.50)) / (1.0+0.75+0.50);// updated parameter b for roots
+                                             param.getModelParam("sapwood_t"), 
+                                             param.getModelParam("conduit_d"),
+                                             max_plc_x)); // accounting for drought stress in previous year (1 year old)
+            b_temp = ((b_fatigue[0][0] * 1.0) + (b_fatigue[0][1] * 0.75) + (b_fatigue[0][2] * 0.50)) / (1.0 + 0.75 + 0.50);// updated parameter b for roots
         } else if (gs_yearIndex >= 3)
         {   
             b_fatigue[0][0] = b_temp;// current year "fresh xylem"
@@ -495,7 +495,7 @@ void Plant::readin() { //'inputs and calculates all parameters at the start
                                             param.getModelParam("sapwood_t"), 
                                             param.getModelParam("conduit_d"),
                                             max_plc_x); // accounting for drought stress in previous year (1 year old)
-            b_temp = ((b_fatigue[0][0] * 1) + (b_fatigue[0][1] * 0.75) + (b_fatigue[0][2] * 0.5) + (b_fatigue[0][3] * 0.25))/(1.0+0.75+0.5+0.25);// updated parameter b for roots
+            b_temp = ((b_fatigue[0][0] * 1) + (b_fatigue[0][1] * 0.75) + (b_fatigue[0][2] * 0.5) + (b_fatigue[0][3] * 0.25))/(1.0 + 0.75 + 0.5 + 0.25);// updated parameter b for roots
         } else 
         {
             // we don't account for cavitation fatigue in the first year unless we now about it
@@ -508,10 +508,14 @@ void Plant::readin() { //'inputs and calculates all parameters at the start
         SoilLayer *t = new SoilLayer; // Xylem destructor deletes the allocated SoilLayers
         t->root.setCwb(c_temp);
         t->root.setBwb(b_temp);
+        xylem.top_soil.root.setBwb(b_temp);
+        xylem.top_soil.root.setCwb(c_temp);
         xylem.soils.push_back(t);
 
-        for (int j = 0; j < sizeof(b_fatigue[0]) / sizeof(b_fatigue[0][0]); j++)
+        for (int j = 0; j < sizeof(b_fatigue[0]) / sizeof(b_fatigue[0][0]); j++) {
             xylem.soils[k]->root.setFatigue(b_fatigue[0][j], j);
+            xylem.top_soil.root.setFatigue(b_fatigue[0][j], j);
+        }
     }
     get_vgparams(param_data.getColumnValue("i_texture", species_no), param.getModelParam("layers"), xylem.soils); // extract VG parameters for a given texture
 
@@ -687,6 +691,7 @@ void Plant::readin() { //'inputs and calculates all parameters at the start
     param.setModelParam(temp, "k_min");
 
     double layers = param.getModelParam("layers");
+    xylem.num_layers = layers;
     //for this soil data we want to use the original anchor-offset system
     for (int k = 0; k < layers; k++) { // set layer depths and % root ksat
         xylem.soils[k]->layer_depth = 0.01 * log(1.0 - ((k + 1) * 0.995) / layers) / log(param.getModelParam("beta")); // lower depth of each layer converted to m
@@ -762,14 +767,14 @@ void Plant::readin() { //'inputs and calculates all parameters at the start
         do //loop through pressures
         {
             x = x + 0.1;
-            rootr = 1.0 / xylem.top_soil.root.wb(x);
+            rootr = 1.0 / xylem.soils[0]->root.wb(x);
             rstem = 1.0 / xylem.stem.wb(x);
             rleaf = 1.0 / xylem.leaf.wb(x);
             rhizor = 1.0 / xylem.soils[0]->rhizosphere.vg(x);
             rplant = rootr + rstem + rleaf + rhizor;
             rrhizofrac = rhizor / rplant; //fraction of resistance in rhizosphere
             sum = sum + rrhizofrac; //add up fractions
-        } while (!(1.0 / (rplant < param.getModelParam("k_min")))); //Loop Until 1 / rplant < kmin //average over full range
+        } while (!((1.0 / rplant) < param.getModelParam("k_min"))); //Loop Until 1 / rplant < kmin //average over full range
         sum = sum / (x / 0.1); //average fraction
     } while (!(sum < param.getModelParam("rhizo_targ"))); // Until sum < rhizotarg //loop until desired soil limitation is reached
     

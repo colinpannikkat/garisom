@@ -8,13 +8,13 @@ int main()
     std::cout << " -------------------------------------------------" << std::endl;
     std::cout << std::endl;
 
-    Plant plantModel(0);
+    Plant *plantModel = new Plant(0);
 
     std::cout << " -------------------------------------------------" << std::endl;
     std::cout << "|            READING MODEL INPUT FILES            |" << std::endl;
     std::cout << " -------------------------------------------------" << std::endl;
     std::cout << std::endl;
-    bool lrSuccess = locateRanges(plantModel.config_data, plantModel.param_data); //Finds all of the input/output sections across the workbook
+    bool lrSuccess = locateRanges(plantModel->config_data, plantModel->param_data); //Finds all of the input/output sections across the workbook
     // It also loads parameter and configuration file
 
     if (!lrSuccess)
@@ -28,26 +28,28 @@ int main()
     std::cout << "|              MODEL CONFIGURATION               |" << std::endl;
     std::cout << " ------------------------------------------------" << std::endl;
     std::cout << std::endl;
-    plantModel.setConfig();
+    plantModel->setConfig();
 
-    plantModel.cleanModelVars();
-    plantModel.initModelVars();
-    plantModel.readin();
+    plantModel->cleanModelVars();
+    plantModel->initModelVars();
+    plantModel->readin();
 
-    if (plantModel.stage_id == STAGE_ID_FUT_STRESS_NOACCLIM) // override some if we're doing the odd "no acclimation stress profile"
+    if (plantModel->stage_id == STAGE_ID_FUT_STRESS_NOACCLIM) // override some if we're doing the odd "no acclimation stress profile"
     {
-        // std::cout << "Stage " << plantModel.stage_id << "; NoAcclim Stress Profile, overriding historical ca " << ca << " -> " << stage_CO2Fut << " and ksatp " << ksatp << " -> " << stage_KmaxFut << std::endl;
+        // std::cout << "Stage " << plantModel->stage_id << "; NoAcclim Stress Profile, overriding historical ca " << ca << " -> " << stage_CO2Fut << " and ksatp " << ksatp << " -> " << stage_KmaxFut << std::endl;
     }
 
-    readDataSheet(plantModel.data, plantModel.sum_data, plantModel.climate_forcing_data_path, plantModel.data_header_file_path, plantModel.sum_header_file_path);
-    readGSSheet(plantModel.gs_data, plantModel.growing_season_limits_data_path);
-    readGrowSeasonData(plantModel.param, plantModel.gs_data);
+    readDataSheet(plantModel->data, plantModel->sum_data, plantModel->climate_forcing_data_path, plantModel->data_header_file_path, plantModel->sum_header_file_path);
+    readGSSheet(plantModel->gs_data, plantModel->growing_season_limits_data_path);
+    readGrowSeasonData(plantModel->param, plantModel->gs_data);
 
-    if ((plantModel.iter_useAreaTable)) {
+    if ((plantModel->iter_useAreaTable)) {
         readSiteAreaValues();
-    }
+    }   
 
-    plantModel.componentPCrits();
+    plantModel->componentPCrits();
+
+    delete plantModel;
 
     return 0;
 }
