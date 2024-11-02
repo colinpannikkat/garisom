@@ -1,6 +1,14 @@
 # Changelog
 Changelog as of 09/23/24
 
+## 11/02/24 (3.0.1)
+* Continued porting over code
+  * componentpcrits() done
+  * modelTimestepIter() beginning
+  * getsoilwetness() done
+* Added ability for CSVData to create new columns if doesn't already exist
+* Changed dataheader to be easier to use
+
 ## 10/19/24 (3.0.0)
 * Began refactoring code, converted to classes with distinct header files following OOP principles
 * Changed storage of parameters to hashmap for more efficient access when running the model

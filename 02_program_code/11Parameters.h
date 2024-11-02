@@ -13,6 +13,9 @@
 #include <cstring>
 #include <unordered_map>
 #include <assert.h>
+#include "01Utilities.h"
+
+#define MAX_YEARS 90
 
 class Parameters {
     private:
@@ -24,6 +27,10 @@ class Parameters {
         std::vector<int> gs_ar_start;
         std::vector<int> gs_ar_end;
         std::vector<double> gs_ar_ppm;
+
+        /* Saved weibull params */
+        double stem_b_wb[MAX_YEARS];
+        double root_b_wb[MAX_YEARS];
 
         // /* Soil table and transport distances */
         // // std::vector<std::vector<double>> soil_layers_table; // unneeded?
@@ -51,6 +58,12 @@ class Parameters {
 
         double& getGsArPpm(int index);
         void setGsArPpm(int index, double value);
+
+        double &getStemBWb(int index);
+        void setStemBWb(int index, double value);
+
+        double &getRootBWb(int index);
+        void setRootBWb(int index, double value);
 
         // double& getLayerDepth(int index);
         // void setLayerDepth(int index, double value);

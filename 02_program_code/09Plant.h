@@ -43,11 +43,15 @@ class Plant {
                     growing_season_limits_data_path, 
                     climate_forcing_data_path, 
                     data_header_file_path, 
-                    sum_header_file_path;
+                    sum_header_file_path,
+                    layer_failure[MAX_INPUT];
 
         int         species_no, 
                     stage_id,
-                    unknowns;
+                    unknowns,
+                    halt,
+                    haltsh,         // track when hydraulics fail
+                    layers;
 
         bool        ground, 
                     soilred, 
@@ -66,7 +70,8 @@ class Plant {
                     iter_runSupplyCurve,
                     isNewYear,
                     gs_inGrowSeason,
-                    gs_doneFirstDay; //done all first day of grow season calculations?
+                    gs_doneFirstDay, //done all first day of grow season calculations?
+                    rainEnabled;
 
         double      iter_gwInc,
                     iter_gwStart,
@@ -80,7 +85,13 @@ class Plant {
                     iter_bagaRef,
                     iter_bagaCutoff,
                     max_plc_x,
-                    b_fatigue[3][10];   // [0, :] is roots, [1, :] is stem, [2, :] is leaves
+                    gwflow,             // Used like twice, needed for soilwetness and deepflow
+                    soilevap,           // set in soilevaporation(), used in soilwetness, maybe just declare local in modelTimeStepIter and pass?
+                    iter_refK,          // used in getsoilwetness, never initialized though?
+                    b_fatigue[3][10],   // [0, :] is roots, [1, :] is stem, [2, :] is leaves
+                    ecritsystem,
+                    pcritsystem,
+                    e_p[CURVE_MAX] = {0};    // whole plant transpiration curve, likely not needed now since only one xylem is typically used
 
         long        gs_yearIndex,       // this is a counter from 0 (for the first year) indicating how many years have passed
                                         // get the actual year from gs_ar_years(gs_yearIndex)
@@ -88,7 +99,8 @@ class Plant {
                     gs_prevDay,
                     year_cur, 
                     year_start,         // not to be confused with the year array index, which is year_cur - year_start
-                    yearVal;            // the temporary variable where we hold the year read from the sheet
+                    yearVal,            // the temporary variable where we hold the year read from the sheet
+                    layer[MAX_INPUT];             // stores status of root layers or smth??
 
         /* 
             Per Venturas et al. 2018.
@@ -196,6 +208,22 @@ class Plant {
         void cleanModelVars();
         void readin();
         void componentPCrits();
+        int modelTimestepIter(int &dd);
+        double getCarbonByYear(int yearVal);
+        void modelProgramNewYear();
+        bool isInGrowSeasonSimple(const int &jd);
+        void getsoilwetness(const int &dd, 
+                            const int &timestep,
+                            const int &tod, 
+                            const std::string &night,
+                            const double &lai,
+                            const double &laish,
+                            const double &laisl,
+                            const double &transpiration_tree,
+                            const double &laperba,
+                            const double &atree,
+                            const double &cinc,
+                            const double &ca);
 };
 
 #endif

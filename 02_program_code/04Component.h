@@ -36,9 +36,12 @@ class Component {
                 p_crit;         // critical pressure, of VC
         std::vector<double> wb_fatigue;
         double e_p[CURVE_MAX] = {0};    // E(P) curve for component
+        double e_pv[CURVE_MAX] = {0};   // Virgin E(P) curve
+        double e_comp[CURVE_MAX] = {0};
         double k[CURVE_MAX] = {0};      // K (conductivity) curve for component
         double k_v[CURVE_MAX] = {0};    // Virgin K (conductivity) curve for component
         double k_comp[CURVE_MAX] = {0}; // New(conductivity) curve for component based on other components
+        double pressure[CURVE_MAX] = {0};
 
     public:
 
@@ -50,6 +53,13 @@ class Component {
         double getCondWb();
         double getKmax();
         double& getFatigue(int index);
+        double& getPressure(int index);
+        double& getEp(int index);
+        double& getEpVirgin(int index);
+        double& getEcomp(int index);
+        double& getK(int index);
+        double& getKVirgin(int index);
+        double& getKComp(int index);
 
         /* Setters */
         void setBwb(double value);
@@ -59,6 +69,13 @@ class Component {
         void setCondWb(double value);
         void setKmax(double value);
         void setFatigue(int index, double value);
+        void setPressure(int index, double value);
+        void setEp(int index, double value);
+        void setEcomp(int index, double value);
+        void setEpVirgin(int index, double value);
+        void setK(int index, double value);
+        void setKVirgin(int index, double value);
+        void setKComp(int index, double value);
 
         /* 
 
@@ -90,7 +107,7 @@ class Component {
             Outputs:
                 - Steady-state flow rate: e_p
         */ 
-        void calc_flow_rate(const double &p_inc, const double &k_min);
+        void calc_flow_rate(const double &p_inc, const double &k_min, bool virgin=false);
 
         void trapzd(const double &p1, const double &p2, double &s, const int &t, int &it);
         void virtual qtrap(double &p1, double &p2, double &s);

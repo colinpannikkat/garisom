@@ -71,6 +71,8 @@ void RhizosphereComponent::qtrap(double &p1, double &p2, double &s) { //'evaluat
 }
 
 void RhizosphereComponent::calc_flow_rate(const double &p_inc, const double &k_min) {
+    memset(e_p, 0, sizeof(e_p));
+    memset(k, 0, sizeof(k));
 
     double p1 = 0, p2 = 0, s = 0, e = 0;
     int i = 1;

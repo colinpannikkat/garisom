@@ -29,7 +29,9 @@ struct SoilLayer {
             layer_depth,
             depth,
             radius,
-            length;
+            length,
+            swclimit,
+            soilredist;
 };
 
 class XylemComponent {
@@ -45,6 +47,9 @@ class XylemComponent {
         std::vector<SoilLayer*> soils;
         int num_layers;
 
+        double e_p[CURVE_MAX] = {0}; // whole xylem transpiration curve
+        double root_pressure[CURVE_MAX] = {0}; // composite root pressure
+        
         /* Used for something! */
         double rough,
                zdispl,
