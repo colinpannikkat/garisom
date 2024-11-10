@@ -44,14 +44,16 @@ class Plant {
                     climate_forcing_data_path, 
                     data_header_file_path, 
                     sum_header_file_path,
-                    layer_failure[MAX_INPUT];
+                    layer_failure[MAX_INPUT],
+                    night;      // know whether is night
 
         int         species_no, 
                     stage_id,
                     unknowns,
                     halt,
                     haltsh,         // track when hydraulics fail
-                    layers;
+                    layers,
+                    tod;
 
         bool        ground, 
                     soilred, 
@@ -88,6 +90,8 @@ class Plant {
                     gwflow,             // Used like twice, needed for soilwetness and deepflow
                     soilevap,           // set in soilevaporation(), used in soilwetness, maybe just declare local in modelTimeStepIter and pass?
                     iter_refK,          // used in getsoilwetness, never initialized though?
+                    transpiration_tree, // used in multiple functions, need to preserve old value
+                    // waterold,        // read from previous dd
                     b_fatigue[3][10],   // [0, :] is roots, [1, :] is stem, [2, :] is leaves
                     ecritsystem,
                     pcritsystem,
@@ -99,8 +103,11 @@ class Plant {
                     gs_prevDay,
                     year_cur, 
                     year_start,         // not to be confused with the year array index, which is year_cur - year_start
-                    yearVal,            // the temporary variable where we hold the year read from the sheet
-                    layer[MAX_INPUT];             // stores status of root layers or smth??
+                    yearVal;            // the temporary variable where we hold the year read from the sheet
+
+        std::vector<double> water,
+                            fc;
+        std::vector<std::vector<double>> jmatrix;
 
         /* 
             Per Venturas et al. 2018.
@@ -207,6 +214,7 @@ class Plant {
         void initModelVars();
         void cleanModelVars();
         void readin();
+        void resetLayerStatus();
         void componentPCrits();
         int modelTimestepIter(int &dd);
         double getCarbonByYear(int yearVal);
@@ -214,16 +222,31 @@ class Plant {
         bool isInGrowSeasonSimple(const int &jd);
         void getsoilwetness(const int &dd, 
                             const int &timestep,
-                            const int &tod, 
-                            const std::string &night,
                             const double &lai,
                             const double &laish,
                             const double &laisl,
-                            const double &transpiration_tree,
                             const double &laperba,
                             const double &atree,
                             const double &cinc,
                             const double &ca);
+        void solarcalc(const int &dd,
+                       const int &jd,
+                       const double &obssolar,
+                       const double &maxvpd,
+                       const double &airtemp,
+                       const double &vpd,
+                       double &lai,
+                       double &laisl,
+                       double &laish,
+                       double &qsl,
+                       double &qsh,
+                       double &ssun,
+                       double &sref,
+                       double &la,
+                       double &lg);
+        int getpredawns(const int &dd);
+        int newtonrhapson(const int &dd, const double &p_inc, const double &e);
+        int compositeCurve(const double &e, const int &p);
 };
 
 #endif

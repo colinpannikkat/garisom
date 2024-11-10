@@ -56,6 +56,8 @@ int main()
         std::cout << "Site area values read." << std::endl;
     }
 
+    plantModel->resetLayerStatus();
+
     std::cout << "Calculating critical points for components" << std::endl;
     plantModel->componentPCrits();
 
@@ -66,23 +68,24 @@ int main()
         {
             successCode = plantModel->modelTimestepIter(dd);
 
-            // if (successCode == 1)
-            // {
-            //     std::cout << "Unrecoverable model failure!" << std::endl;
-            //     return 1; // failure, unrecoverable
-            // }
-            // else if (successCode > 0) // this returns the year if we've incremented it -- not necessary in the full C version (also only supports 1 year right now)
-            // {
-            //     dd = dd - 1; //we need to repeat this timestep because we bailed early when finding a new year
-            //     plantModel->gs_yearIndex = successCode;
+            if (successCode == 1)
+            {
+                std::cout << "Unrecoverable model failure!" << std::endl;
+                return 1; // failure, unrecoverable
+            }
+            else if (successCode > 0) // this returns the year if we've incremented it -- not necessary in the full C version (also only supports 1 year right now)
+            {
+                std::cout << "Repeating previous year" << std::endl;
+                dd = dd - 1; //we need to repeat this timestep because we bailed early when finding a new year
+                plantModel->gs_yearIndex = successCode;
 
-            //     // if we're running without growing season limits, we need to record the "end of GS" water content now
-            //     // because we did not complete the previous timestep, back up 1 more to grab a value
-            //     if (!plantModel->useGSData && plantModel->gs_yearIndex > 0)
-            //         plantModel->gs_ar_waterFinal_GS[plantModel->gs_yearIndex - 1] = dSheet.Cells(rowD + dd - 1, colD + dColF_End_watercontent); // make sure this goes with the previous year
+                // if we're running without growing season limits, we need to record the "end of GS" water content now
+                // because we did not complete the previous timestep, back up 1 more to grab a value
+                // if (!plantModel->useGSData && plantModel->gs_yearIndex > 0)
+                //     plantModel->gs_ar_waterFinal_GS[plantModel->gs_yearIndex - 1] = dSheet.Cells(rowD + dd - 1, colD + dColF_End_watercontent); // make sure this goes with the previous year
 
-            //     modelProgramNewYear();
-            // }
+                // modelProgramNewYear();
+            }
             // else // 0 = success, VBA bool convention
             // {
             //     int breakpoint = 1137; // success, in the C version we just continue instead of outputting

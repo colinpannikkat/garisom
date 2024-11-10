@@ -403,6 +403,9 @@ void Plant::readin() { //'inputs and calculates all parameters at the start
     param.setModelParam(temp, "layers");
     this->layers = temp; // easier access
 
+    water.resize(layers+1),
+    fc.resize(layers+1);
+
     param_data.getColumnValue(temp, "i_rockFrac", species_no); // fraction of soil volume as rocks
     param.setModelParam(temp, "rock_frac");
     // TO-DO: update here to be able to input VG parameters from soil water retention curves
@@ -811,31 +814,37 @@ void Plant::readin() { //'inputs and calculates all parameters at the start
     xylem.zh = 0.2 * xylem.rough; // roughness for temperature
 }
 
+/* Reset the status for every soil layer */
+void Plant::resetLayerStatus() {
+    xylem.top_soil.cavitated = false;
+    xylem.top_soil.failure = "ok";
+    for (int i = 0; i < layers; i++) {
+        xylem.soils[i]->cavitated = false;
+        xylem.soils[i]->failure = "ok";
+    }
+}
+
 void Plant::componentPCrits() {
     xylem.calc_net_flow(param.getModelParam("p_inc"), param.getModelParam("k_min"));
 }
 
 int Plant::modelTimestepIter(int &dd) {
-    double transpiration, md, psynact, gcmd, lavpdmd, cinc, lai, laisl, laperba;
+    double transpiration, md, psynact, gcmd, lavpdmd, laperba;
     double transpirationsh, mdsh, psynactsh, gcmdsh, lavpdmdsh, cincsh, qsh, laish;
     std::vector<double> eplantl, pleaf, psyn, gcanw, lavpd, cin, leaftemp;
     std::vector<double> psynsh, gcanwsh, lavpdsh, cinsh, leaftempsh;
 
     bool failure = false;
     int check = 0,
-        weird,
+        reset_guess,
         total;
-    std::string failspot, // used for debugging?
-                night;
-    std::vector<double> kminroot;
-    int    tod, // time of today
-           timestep;
+    std::string failspot; // used for debugging?
+    int    timestep;
     double kminstem,
            kminleaf,
            kminplant,
            gwflow,
            drainage,
-           ca,  // carbon assimilatiomn
            obssolar,
            vpd,
            airtemp,
@@ -846,10 +855,15 @@ int Plant::modelTimestepIter(int &dd) {
            chalk,
            qsl,
            lightcomp,
-           transpiration_tree,
            atree,
            kplantold,
-           patm;
+           patm,
+           ssun,
+           sref,
+           la,
+           lg;
+
+    laperba = param.getModelParam("leaf_per_basal");
 
     if (dd == 0 || isNewYear)
     {
@@ -860,7 +874,7 @@ int Plant::modelTimestepIter(int &dd) {
 
         for (int i = 0; i < layers; i++)// k = 1 To layers ;//'exclude the top layer
         {
-            kminroot.push_back(xylem.soils[i]->root.getKmax());
+            xylem.soils[i]->root.setKmin(xylem.soils[i]->root.getKmax());
         }
 
         kminstem = xylem.stem.getKmax();
@@ -876,8 +890,6 @@ int Plant::modelTimestepIter(int &dd) {
                                 //[/HNT]
     }
 
-    //dd++;
-    long testCount = 0;
     yearVal = std::lround(data.getColumnValue("year", dd));
     if (yearVal != year_cur)
     {
@@ -919,17 +931,17 @@ int Plant::modelTimestepIter(int &dd) {
         }
     }
     
-    if ( dd == 0 || isNewYear){// Get CO2 for current year
-        ca = getCarbonByYear(yearVal); // get current year atmospheric CO2
-        std::cout << "Atmospheric CO2 concentration for " << yearVal << ": " << ca << std::endl;
-        ca = ca * 0.000001;
+    if ( dd == 0 || isNewYear){ // Get CO2 for current year
+        this->carbon.ca = getCarbonByYear(yearVal); // get current year atmospheric CO2
+        std::cout << "Atmospheric CO2 concentration for " << yearVal << ": " << this->carbon.ca << std::endl;
+        this->carbon.ca = this->carbon.ca * 0.000001;
         param.setStemBWb(gs_yearIndex, xylem.stem.getBwb());
         param.setRootBWb(gs_yearIndex, xylem.soils[0]->root.getBwb());
     }
 
     int jd = data.getColumnValue("julian-day", dd); //'julian day
 
-    if (dd > 1 && !isNewYear) { //if// //'set timestep
+    if (dd > 0 && !isNewYear) { //if// //'set timestep
         if (tod < data.getColumnValue("standard-time", dd)) { //if// //'same old day getting older
             timestep = data.getColumnValue("standard-time", dd) - tod;
         }
@@ -970,76 +982,81 @@ int Plant::modelTimestepIter(int &dd) {
         data.setColumnValue(maxvpd * param.getModelParam("p_atm"), dd, "D-MD"); //'print out maximum vpd
     } //End if//
 
-    getsoilwetness(dd, timestep, tod, night, lai, laish, laisl, transpiration_tree, laperba, atree, cinc, ca); //'after initializing, start updating water contents of soil layers
-//     solarcalc(); //'get radiation for timestep
-//     if (qsl > lightcomp /*[HNT] multiyear*/ && gs_inGrowSeason /*[/HNT]*/) { //if//
-//         night = "n"; //'it//'s light enough for sun layer to do business
-//     }
-//     else {
-//         night = "y"; //'too dark
-//     } //End if// //'end night if
+    getsoilwetness(dd, timestep, this->carbon.lai, this->carbon.laish, this->carbon.laisl, laperba, this->carbon.atree, this->carbon.cinc, this->carbon.ca); //'after initializing, start updating water contents of soil layers
+    solarcalc(dd, jd, obssolar, maxvpd, airtemp, vpd, this->carbon.lai, this->carbon.laisl, this->carbon.laish, qsl, qsh, ssun, sref, la, lg); //'get radiation for timestep
+    if (qsl > lightcomp /*[HNT] multiyear*/ && gs_inGrowSeason /*[/HNT]*/) { //if//
+        night = "n"; //'it//'s light enough for sun layer to do business
+    }
+    else {
+        night = "y"; //'too dark
+    } //End if// //'end night if
 
-//     gwflow = 0; //'re-set inflow to bottom of root zone
-//     drainage = 0; //'re-set drainage from bottom of root zone
-//                     //'Call getpredawns //'update soil pressure of each layer
-//                     //'if failure = 1 { //if// Exit do
-//     chalk = 0; //'einc counter
+    gwflow = 0; //'re-set inflow to bottom of root zone
+    drainage = 0; //'re-set drainage from bottom of root zone
+                    //'Call getpredawns //'update soil pressure of each layer
+                    //'if failure = 1 { //if// Exit do
+    chalk = 0; //'einc counter
 
-// twentyMarker:
+twentyMarker:
 
-//     getpredawns(); //'passed initializing...update soil pressure of each layer
+    failure = getpredawns(dd); //'passed initializing...update soil pressure of each layer
 
-//     if (failure == 1)
-//         return -1;//break;//Exit do
+    if (failure == 1)
+        return 1;
 
-//     int test = 0; //'=1 if stem or leaf fails
-//     int p = -1; //'E(Pleaf) point counter
-//     double einc = param.getModelParam("e_inc");
-//     double e = -einc; //'total e: einc and e are still in kg hr-1 m-2 basal area, as are conductances
-//     double psynmax = -100;
-//     double psynmaxsh = -100;
-//     int skip = 0; //'this turns off psynthesis
-//     double sum = 0;
+    int test = 1; //'=0 if stem or leaf fails
+    int p = -1; //'E(Pleaf) point counter
+    double einc = param.getModelParam("e_inc");
+    double e = -einc; //'total e: einc and e are still in kg hr-1 m-2 basal area, as are conductances
+    double psynmax = -100;
+    double psynmaxsh = -100;
+    int skip = 0; //'this turns off psynthesis
+    double sum = 0;
 
-//     do //'this loop obtains and stores the entire composite curve
-//     {
-//         p = p + 1;
-//         e = e + einc;
-//         newtonrhapson(); //'solves for p//'s and e//'s in fingers of chicken foot
-//                         //'if check >= 400 { //if// GoTo 60: //'NR can//'t find a solution
-//         if (check > 500) { //if//
-//             break;//Exit do
-//         } //End if//
-//         //'test for total failure
-//         sum = 0;
-//         for (int k = 0; k < layers; k++)//k = 1 To layers
-//         {
-//             sum = sum + layer[k];
-//         } //end for k
-//         if (sum == layers) { //if//
-//             failspot = "below ground"; //'total failure below ground
-//             break;//Exit do
-//         } //End if//
-//         stem(); //'gets stem and leaf pressures
-//         leaf();
-//         if (test == 1)
-//             break;//Exit do
-//         compositecurve(); //'stores the entire composite curve
-//                         //'if skip = 0 { //if//
-//         leaftemps(); //'gets sun layer leaf temperature from energy balance
-//         leaftempsshade(); //'gets shade layer leaf temperature
-//         assimilation(); //'gets sun layer photosynthesis
-//         assimilationshade(); //'gets shade layer photosynthesis
+    do // This loop obtains and stores the entire composite curve by incrementing e from zero
+    {
+        p = p + 1;
+        e = e + einc;
+        check = newtonrhapson(dd, param.getModelParam("p_inc"), e); // solves root and rhizosphere pressures
 
-//     } while (!(sum == layers || test == 1 || night == "y" && (dd > 1 && !isNewYear) || check >= 500)); //'loop to complete failure unless it//'s night
+        if (check > 500) {
+            std::cout << "500 restarts for newtonrhapson" << std::endl;
+            break;
+        }
+
+        // test for total failure
+        sum = 0;
+        for (int k = 0; k < layers; k++)
+        {
+            sum = sum + xylem.soils[k]->cavitated;
+        }
+        if (sum == layers) {
+            failspot = "below ground";
+            break;
+        }
+
+        test = xylem.stem.calc_pressure(e, xylem.soils[0]->root.getPressure(), param.getModelParam("p_grav"), param.getModelParam("p_inc")); //'gets stem and leaf pressures
+        test = xylem.leaf.calc_pressure(e, xylem.stem.getPressure(), 0, param.getModelParam("p_inc")); // apparently gravity doesn't affect leaves downstream pressure??
+
+        if (test == 1) { // failure with stem and leaf pressures
+            std::cout << "stem and leaf pressures reached critical point" << std::endl;
+            break;
+        }
+        test = compositeCurve(e, p); //'stores the entire composite curve for every P_c = p
+        // leaftemps(); //'gets sun layer leaf temperature from energy balance
+        // leaftempsshade(); //'gets shade layer leaf temperature
+        // assimilation(); //'gets sun layer photosynthesis
+        // assimilationshade(); //'gets shade layer photosynthesis
+
+    } while (!(sum == layers || test == 1 || (night == "y" && (dd > 0 && !isNewYear)) || check >= 500)); //'loop to complete failure unless it//'s night
 
 //     if (chalk > 0) { //if//
-//         weird = 0; //'done our best
+//         reset_guess = 0; //'done our best
 //         failspot = "convergence";
 //         for (int z = 0; z < layers; z++)//z = 0 To layers //'restore layers to functioning if they//'ve been turned off by convergence failure
 //         {
 //             if (kminroot[z] != 0)
-//                 layer[z] = 0;
+//                 xylem.soils[z]->cavitated = 0;
 //         } //end for z
 
 //         goto fortyMarker; //'got as much of the composite curve as is going to happen
@@ -1082,7 +1099,7 @@ int Plant::modelTimestepIter(int &dd) {
 //     bool isNight = true;
 //     if (night == "n")
 //         isNight = false;
-//     if (night == "n" && psynmax > 0 && psynmaxsh > 0 && weird == 0) { //if//
+//     if (night == "n" && psynmax > 0 && psynmaxsh > 0 && reset_guess == 0) { //if//
 //                                                                         //DoEvents //'[HNT] this was required to prevent a hard lock -- this portion of the loop is the most intensive, so let Excel take a "breath" by processing system events to prevent lockup
 //         canopypressure(); //'returns canopy P and associated output
 //                         //'if check >= 2000 { //if// GoTo 60:
@@ -1109,7 +1126,7 @@ int Plant::modelTimestepIter(int &dd) {
 //         param.setModelParam(0, "soil_evap");
 //     } //End if//
 
-//     if (failure == 0 || weird == 1) { //if//
+//     if (failure == 0 || reset_guess == 1) { //if//
 //                                         //Debug.Print "DOING A LOOP-8 " & dd
 
 //         if (night == "y" || psynmax == 0 || psynmaxsh == 0) { //if// //'set everything to starting point
@@ -1210,7 +1227,7 @@ int Plant::modelTimestepIter(int &dd) {
 //         {
 //             std::ostringstream oss;
 //             oss << "Layer-" << z << "-failure";
-//             if (layer[z] == 1)
+//             if (xylem.soils[z]->cavitated == 1)
 //                 data.setColumnValue(-1137, dd, oss.str()); // layer_failure[z]; //'layers failed at critical point
 //         } //end for z
 
@@ -1234,13 +1251,13 @@ int Plant::modelTimestepIter(int &dd) {
 //         //'now...need to reset layer failure status to midday values (not critical point)
 //     for (int z = 0; z < layers; z++)//z = 0 To layers
 //     {
-//         if (layer[z] == 1) { //if// //'check to see if kminroot[z]=0; otherwise, restore it to function
+//         if (xylem.soils[z]->cavitated == 1) { //if// //'check to see if kminroot[z]=0; otherwise, restore it to function
 //             if (layer_failure[z] == "root" && kminroot[z] > 0) { //if//
-//             layer[z] = 0;
+//             xylem.soils[z]->cavitated = 0;
 //             layer_failure[z] = "ok";
 //             } //End if//
 //             if (layer_failure[z] == "rhizosphere" && kminroot[z] > 0) { //if//
-//             layer[z] = 0;
+//             xylem.soils[z]->cavitated = 0;
 //             layer_failure[z] = "ok";
 //             } //End if//
 //         } //End if//
@@ -1305,7 +1322,7 @@ double Plant::getCarbonByYear(int yearVal) {
 //     for (k = 0; k <= layers; k++) // To layers //assign source pressures, set layer participation
 //     {
 //         layer_failure[k] = "ok";
-//         layer[k] = 0; //1 if out of function
+//         xylem.soils[k]->cavitated = 0; //1 if out of function
 //     } //Next k
 
 //         //[HNT] all this is done in C now
@@ -1316,7 +1333,7 @@ double Plant::getCarbonByYear(int yearVal) {
 //         failspot = "no failure";
 
 //         for (k = 1; k <= layers; k++) {//k = 1 To layers //exclude the top layer
-//             kminroot[k] = ksatr[k];
+//             xylem.soils[k]->root.getKmin() = ksatr[k];
 //         } //Next k
 
 //         kminstem = ksats;
@@ -1359,21 +1376,12 @@ bool Plant::isInGrowSeasonSimple(const int &jd) {
     }
 }
 
-double swc(const double &x, const double &van_gen_alpha, const double &van_gen_n) //'gives soil water content, theta/thetasat from soil water potential in MPa=x
-{
-    //swc = (1 / (1 + (a(z) * x) ^ n(z))) ^ (1 - 1 / n(z))
-    return pow((1 / (1 + pow((van_gen_alpha * x), van_gen_n))), (1 - 1 / van_gen_n));
-}
-
 //'gets predawns accounting for rain, groundwater flow, transpiration, and redistribution via soil and roots
 void Plant::getsoilwetness(const int &dd, 
                            const int &timestep,
-                           const int &tod, 
-                           const std::string &night,
                            const double &lai,
                            const double &laish,
                            const double &laisl,
-                           const double &transpiration_tree,
                            const double &laperba,
                            const double &atree,
                            const double &cinc,
@@ -1382,22 +1390,20 @@ void Plant::getsoilwetness(const int &dd,
     double tempDouble = 0.0;
     double drainage = 0;
     double runoff = 0;
-    double waterold,
-           layerflow;
+    double layerflow;
 
     std::vector<double> thetafracres(layers+1),
                         thetafracfc(layers+1),
-                        thetafc(layers+1),
-                        water(layers+1),
-                        fc(layers+1);
+                        thetafc(layers+1);
     if (dd == 0 || isNewYear) { //if// //'every layer starts at initial % of field capacity
+
+        double waterold = 0; //'total root zone water content (mmol m-2 ground area)
 
         if (!(useGSData && gs_yearIndex > 0))
         {
-            waterold = 0; //'total root zone water content (mmol m-2 ground area)
-
+            
             /* Set top layer */
-            thetafracres[0] = swc(10, xylem.top_soil.rhizosphere.getVanGenAlpha(), xylem.top_soil.rhizosphere.getVanGenN()); //'residual thetafrac
+            thetafracres[0] = xylem.top_soil.rhizosphere.swc(10); //'residual thetafrac
             thetafracfc[0] = (1 - thetafracres[0]) * param.getModelParam("field_cap_frac") + thetafracres[0]; //'thetafrac at field capacity
             thetafc[0] = xylem.soils[0]->rhizosphere.getThetaSat() * thetafracfc[0]; //'water content at field capacity
 
@@ -1405,7 +1411,7 @@ void Plant::getsoilwetness(const int &dd,
             for (int z = 1; z <= layers; z++)//z = 0 To layers //'
             {
                 // int x = 10; //'MPa water potential for getting residual thetafrac
-                thetafracres[z] = swc(10, xylem.soils[z - 1]->rhizosphere.getVanGenAlpha(), xylem.soils[z - 1]->rhizosphere.getVanGenN()); //'residual thetafrac
+                thetafracres[z] = xylem.soils[z-1]->rhizosphere.swc(10); //'residual thetafrac
                 thetafracfc[z] = (1 - thetafracres[z]) * param.getModelParam("field_cap_frac") + thetafracres[z]; //'thetafrac at field capacity
                 thetafc[z] = xylem.soils[z-1]->rhizosphere.getThetaSat() * thetafracfc[z]; //'water content at field capacity
             } //for//z //'
@@ -1439,15 +1445,15 @@ void Plant::getsoilwetness(const int &dd,
         // [/HNT]
     } //End if// //'dd=1 if
         //'if pet = "y" Or pet = "n" { //if// //'do the original routine...doesn//'t run for PET scenario
-    if ((dd > 1 && !isNewYear) || (useGSData && gs_yearIndex > 0)) { //if// //'get flows that happened during previous timestep
+    if ((dd > 0 && !isNewYear) || (useGSData && gs_yearIndex > 0)) { //if// //'get flows that happened during previous timestep
 
         for (int z = 0; z < layers; z++)//z = 0 To layers - 1 //'transpiration, root and soil redistribution
         {
             if (night == "n") { //if// //'it//'s day, must adjust elayer for sun vs. shade weighting
-                layerflow = xylem.soils[z]->root.getEcomp(halt) * laisl / lai + xylem.soils[z]->root.getEcomp(haltsh) * laish / lai; //'weighted flow; NOTE: elayer = 0 for layer 0
+                layerflow = xylem.soils[z]->root.getEComp(halt) * laisl / lai + xylem.soils[z]->root.getEComp(haltsh) * laish / lai; //'weighted flow; NOTE: elayer = 0 for layer 0
             }
             else {
-                layerflow = xylem.soils[z]->root.getEcomp(halt); //'no adjustment necessary at night; NOTE: elayer = 0 for layer 0
+                layerflow = xylem.soils[z]->root.getEComp(halt); //'no adjustment necessary at night; NOTE: elayer = 0 for layer 0
             } //End if// //'night if
             layerflow = layerflow * param.getModelParam("ba_per_ga") * 1.0 / 998.2 * timestep; //'rootflow into (= negative rootflow) or out (positive flow) of layer in m3/m2 ground area
             layerflow = layerflow + xylem.soils[z]->soilredist * 1.0 / 998.2 * timestep; //'redistribution between layers (negative is inflow, positive is outflow). NOTE: xylem.soils(0)->soilredist includes soil evaporation for layer 0
@@ -1455,10 +1461,10 @@ void Plant::getsoilwetness(const int &dd,
         } //for//z
         //'now do the bottom layer and potential groundwater input
         if (night == "n") { //if// //'it//'s day, must adjust layerflow for sun vs. shade weighting
-            layerflow = xylem.soils[layers-1]->root.getEcomp(halt) * laisl / lai + xylem.soils[layers-1]->root.getEcomp(haltsh) * laish / lai; //'weighted flow
+            layerflow = xylem.soils[layers-1]->root.getEComp(halt) * laisl / lai + xylem.soils[layers-1]->root.getEComp(haltsh) * laish / lai; //'weighted flow
         }
         else {
-            layerflow = xylem.soils[layers-1]->root.getEcomp(halt); //'no adjustment necessary at night
+            layerflow = xylem.soils[layers-1]->root.getEComp(halt); //'no adjustment necessary at night
         } //End if// //'night if
         layerflow = layerflow * param.getModelParam("ba_per_ga") * 1 / 998.2 * timestep; //'rootflow into (= negative rootflow) or out (positive flow) of layer in m3/m2 ground area
         layerflow = layerflow + xylem.soils[layers - 1]->soilredist * 1 / 998.2 * timestep; //'redistribution between layers (negative is inflow, positive is outflow)
@@ -1517,10 +1523,10 @@ void Plant::getsoilwetness(const int &dd,
 
             if (rainOverride) // just force everything to FC on every timestep
             {
-            for (int z = 0; z <= layers; z++)//z = 0 To layers //'add in rain
-            {
-                water[z] = fc[z];
-            }
+                for (int z = 0; z <= layers; z++)//z = 0 To layers //'add in rain
+                {
+                    water[z] = fc[z];
+                }
             } // do this before the rain addition, so that we see all rain as runoff
 
             if (rainEnabled == false || mode_predawns) // predawns mode also turns off rain
@@ -1608,17 +1614,17 @@ void Plant::getsoilwetness(const int &dd,
         for (int z = 1; z <= layers; z++)//z = 1 To layers
         {
             if (water[z] < xylem.soils[z - 1]->swclimit)
-            layer[z] = 1; //'water exhausted
+            xylem.soils[z]->cavitated = true; //'water exhausted
         } //for//z
         //'now get water content change over PREVIOUS time step
-        if ((dd > 1 && !isNewYear) || (useGSData && gs_yearIndex > 0)) { //if// //'now get updated new water content
+        if ((dd > 0 && !isNewYear) || (useGSData && gs_yearIndex > 0)) { //if// //'now get updated new water content
             double waternew = 0;
+            double waterold = data.getColumnValue("water-content", dd - 1) / 1000; // waterold is previous timestep water-content
             for (int z = 0; z <= layers; z++)//z = 0 To layers //'check for exhausted layers
             {
-                waternew = water[z];
+                waternew += water[z];
             } //for//z
 
-            //'waternew = waternew * 55555556# //'new water content at beginning of timestep
             double waterchange = waternew - waterold; //'total water change in mm m-2 ground area
                                             //'waterchange = waterchange * 1 / param.getModelParam("ba_per_ga") * 1 / laperba //'total water in mmol per m2 leaf area
             data.setColumnValue(waternew * 1000, dd, "water-content"); //'root zone water content in mm
@@ -1638,11 +1644,10 @@ void Plant::getsoilwetness(const int &dd,
             gs_data.setColumnValue(gs_data.getColumnValue("input", gs_yearIndex) + data.getColumnValue("end-total-water-input", dd), gs_yearIndex, "input");
 
             data.setColumnValue(runoff * 1000, dd, "end-runoff"); //'excess root zone water per timestep in mm
-            waterold = waternew; //'reset to beginning of current timestep
         } //End if// //'dd>1 if
     } //End if// //'dd>1 if
         //'} //End if////'pet if
-    if (dd > 1 && !isNewYear) { //if//
+    if (dd > 0 && !isNewYear) { //if//
         tempDouble = transpiration_tree * 3600 * timestep * laperba * param.getModelParam("ba_per_ga") * 0.000000018 * 1000;
         
         data.setColumnValue(tempDouble, dd, "end-E"); //transpiration_tree * 3600 * timestep * laperba * param.getModelParam("ba_per_ga") * 0.000000018 * 1000; //'transpiration per ground area in mm m-2 per timestop
@@ -1700,14 +1705,14 @@ void Plant::getsoilwetness(const int &dd,
     } //End if// //'dd=16 if
     
     if (gs_doneFirstDay) { //if// //'calculate plc relative to midday of day 1
-        if (iter_refK < 0.000000001) // || iter_Counter == 0 // no longer appropriate to test for iter_Counter == 0 ... may be doing a seperate stress profile that refers to a saved refK, which will have been loaded at start of modelProgramMain
-            tempDouble = 100 * (1 - data.getColumnValue("K-plant", dd - 1) / kpday1); //' done to avoid repeating this calculation
-        else // if we haven't loaded a ref K it will be set to zero, and we need to fall back to the old method.. otherwise use refK to calculate PLC
-        {
-            tempDouble = 100 * (1 - data.getColumnValue("K-plant", dd - 1) / iter_refK); // PLCp calculated from refK if it exists
-            if (tempDouble < 0.0) // if we're using the refK, it's possible for this to be negative briefly -- should be considered zero
-                tempDouble = 0.0;
-        }
+        // if (iter_refK < 0.000000001) // || iter_Counter == 0 // no longer appropriate to test for iter_Counter == 0 ... may be doing a seperate stress profile that refers to a saved refK, which will have been loaded at start of modelProgramMain
+        tempDouble = 100 * (1 - data.getColumnValue("K-plant", dd - 1) / kpday1); //' done to avoid repeating this calculation
+        // else // if we haven't loaded a ref K it will be set to zero, and we need to fall back to the old method.. otherwise use refK to calculate PLC
+        // {
+        //     tempDouble = 100 * (1 - data.getColumnValue("K-plant", dd - 1) / iter_refK); // PLCp calculated from refK if it exists
+        //     if (tempDouble < 0.0) // if we're using the refK, it's possible for this to be negative briefly -- should be considered zero
+        //         tempDouble = 0.0;
+        // }
         data.setColumnValue(tempDouble, dd, "end-PLC-plant"); //'100 * (1 - dSheet.Cells(rowD - 1 + dd, colD + dColF_CP_kplant) / kpday1) 'plc plant...prior timestep
 
                                                                         // no matter what, add it to the tally for calculating the mean over-season PLCp
@@ -1766,4 +1771,802 @@ void Plant::getsoilwetness(const int &dd,
                                gs_yearIndex, 
                                "water-input-off");
     }
+}
+
+int Plant::getpredawns(const int &dd) // gets soil predawn water potential for each layer
+{
+    double theta,
+           sum,
+           pr,
+           prinitial;
+    int    t,
+           failure;
+
+    //'first check for layer participation...only rooted layers, not layer 0
+    for (int k = 0; k < layers; k++)//k = 1 To layers //'assign source pressures, set layer participation
+    {
+        if (xylem.soils[k]->failure == "root") { //if//
+            if (xylem.soils[k]->root.getKmin() == 0) {
+                // std::cout << "Root kmin == 0" << std::endl;
+                xylem.soils[k]->cavitated = true; //'gone from scene if roots cavitated at midday
+            }
+            if (xylem.soils[k]->root.getKmin() != 0) { //if// //'roots still around
+                // std::cout << "Root kmin != 0" << std::endl;
+                xylem.soils[k]->failure = "ok";
+                xylem.soils[k]->cavitated = false;
+            } //End if//
+        } //End if//
+        if (xylem.soils[k]->failure == "rhizosphere")
+            xylem.soils[k]->cavitated = false; //'layer can come back to life
+    } //for//k
+        //'after getting water[z] and layer participation, get predawns
+    /* Top soil layer check */
+    if (xylem.top_soil.cavitated == false) { //if//
+        // std::cout << "Top_soil not cavitated" << std::endl;
+        theta = water[0] / xylem.top_soil.depth; //'convert m3 water per m2 ground back to m3 water / m3 soil
+        double x = theta / xylem.top_soil.rhizosphere.getThetaSat(); //'remember, VG function takes theta/thetasat as input
+        //predawns mode
+        if (mode_predawns)
+            xylem.top_soil.predawn_pressure = data.getColumnValue("rain", dd) - param.getModelParam("p_grav"); // read the predawns+pgrav from the "rain" column
+        else
+            xylem.top_soil.predawn_pressure = xylem.top_soil.rhizosphere.vg(x); //'soil pressure of layer
+        //end predawns mode changes
+        xylem.top_soil.rhizosphere.setPressure(xylem.top_soil.predawn_pressure); //'guess for NR solution
+    }
+    else { //'layer//'s disconnected
+        xylem.top_soil.predawn_pressure = xylem.top_soil.root.getPcrit();
+        xylem.top_soil.rhizosphere.setPressure(xylem.top_soil.root.getPcrit());
+    } //End if//
+    for (int z = 1; z <= layers; z++)//z = 0 To layers
+    {
+        if (xylem.soils[z-1]->cavitated == false) { //if//
+            theta = water[z] / xylem.soils[z-1]->depth; //'convert m3 water per m2 ground back to m3 water / m3 soil
+            double x = theta / xylem.soils[z-1]->rhizosphere.getThetaSat(); //'remember, VG function takes theta/thetasat as input
+            //predawns mode
+            if (mode_predawns)
+                xylem.soils[z-1]->predawn_pressure = data.getColumnValue("rain", dd) - param.getModelParam("p_grav"); // read the predawns+pgrav from the "rain" column
+            else
+                xylem.soils[z-1]->predawn_pressure = xylem.soils[z-1]->rhizosphere.rvg(x); //'soil pressure of layer
+            //end predawns mode changes
+            xylem.soils[z-1]->rhizosphere.setPressure(xylem.soils[z-1]->predawn_pressure);
+            if (xylem.soils[z-1]->predawn_pressure >= xylem.soils[z-1]->rhizosphere.getPcrit()) { //if// //'only rooted layers // [HNT] >= instead of > for consistency w/ Newton Rhapson update
+                // std::cout << "soil cavitated" << std::endl;
+                xylem.soils[z-1]->cavitated = true;
+                xylem.soils[z-1]->failure = "rhizosphere";
+            } //End if//
+            if (xylem.soils[z-1]->predawn_pressure >= xylem.soils[z-1]->root.getPcrit()) { //if// //'only rooted layers // [HNT] >= instead of > for consistency w/ Newton Rhapson update
+                // std::cout << "roots cavitated" << std::endl;
+                xylem.soils[z-1]->cavitated = true;
+                xylem.soils[z-1]->failure = "root";
+                xylem.soils[z-1]->root.setKmin(0);
+            } //End if//
+        }
+        else { //'layer//'s disconnected
+            xylem.soils[z-1]->predawn_pressure = xylem.soils[z-1]->root.getPcrit();
+            xylem.soils[z-1]->rhizosphere.setPressure(xylem.soils[z-1]->root.getPcrit());
+        } //End if//
+    } //for//z
+        //'now get guess of proot
+    sum = 0;
+    t = 0;
+    for (int k = 0; k < layers; k++)//k = 1 To layers
+    {  
+        if (xylem.soils[k]->cavitated == 0) { //if//
+            sum = sum + xylem.soils[k]->predawn_pressure;
+        }
+        else { //'predawn is not seen by the roots
+            t = t + 1;
+        } //End if//
+    } //for//k
+    // failspot = "no failure";
+    if (t < layers) { //if//
+        pr = sum / (layers - t); //'set unknown proot to average pd
+        xylem.soils[0]->root.setPressure(sum / (layers - t)); //'set unknown proot to average pd
+        prinitial = pr; //'store initial value if NR gets off the rails
+    }
+    else
+        return 1;
+
+    for (int z = 1; z <= layers; z++)//z = 1 To layers
+    {
+        std::ostringstream oss;
+        oss << "P" << z;
+        data.setColumnValue(xylem.soils[z-1]->predawn_pressure, dd, oss.str()); //'soil pressures by layer (only for rooted layers)
+    }
+    return 0;
+}
+
+void ludcmp(const int &unknowns, std::vector<std::vector<double>> &jmatrix, std::vector<int> &indx) //'does LU decomposition on the jacobian prior to solution by lubksb
+{
+    int imax;
+    double aamax,
+           sum,
+           dum;
+    std::vector<double> vv(unknowns, 0.0);
+
+    for (int i = 0; i < unknowns; i++)//i = 1 To unknowns
+    {
+        aamax = 0;
+        for (int j = 0; j < unknowns; j++)//j = 1 To unknowns
+        {
+            if (std::abs(jmatrix[i][j]) > aamax)
+            aamax = std::abs(jmatrix[i][j]);
+        }
+        if (aamax == 0)
+            return;
+        vv[i] = 1 / aamax;
+    }
+    for (int j = 0; j < unknowns; j++)//j = 1 To unknowns
+    {
+        for (int i = 0; i < j; i++) //i = 1 To j - 1
+        {
+            sum = jmatrix[i][j];
+            for (int k = 0; k < i; k++) //k = 1 To i - 1
+            {
+                sum = sum - jmatrix[i][k] * jmatrix[k][j];
+            }
+            jmatrix[i][j] = sum;
+        }
+        aamax = 0;
+        for (int i = j; i < unknowns; i++)//i = j To unknowns
+        {
+            sum = jmatrix[i][j];
+            for (int k = 0; k < j; k++) //k = 1 To j - 1
+            {
+                sum = sum - jmatrix[i][k] * jmatrix[k][j];
+            }
+            jmatrix[i][j] = sum;
+            dum = vv[i] * std::abs(sum);
+            if (dum > aamax)
+            {
+                imax = i;
+                aamax = dum;
+            }
+        }
+        if (j != imax) // j <> imax
+        {
+            for (int k = 0; k < unknowns; k++) //k = 1 To unknowns
+            {
+                dum = jmatrix[imax][k];
+                jmatrix[imax][k] = jmatrix[j][k];
+                jmatrix[j][k] = dum;
+            }
+            vv[imax] = vv[j];
+        }
+        indx[j] = imax;
+        if (jmatrix[j][j] == 0)
+            jmatrix[j][j] = 1E-25;
+        if (j != unknowns)
+        {
+            dum = 1 / jmatrix[j][j];
+            for (int i = j + 1; i < unknowns; i++) //i = j + 1 To unknowns
+            {
+                jmatrix[i][j] = jmatrix[i][j] * dum;
+            }
+        }
+    }
+}
+
+void lubksb(const int &unknowns, std::vector<std::vector<double>> &jmatrix, std::vector<double> &func, std::vector<int> const &indx) //'solves the decomposed jacobian for delta p's
+{
+    int ii = 0;
+    int ll;
+    double sum;
+    for (int i = 0; i < unknowns; i++)//i = 1 To unknowns
+    {
+        ll = int(indx[i]); //'indx array comes from ludcmp
+        sum = func[ll]; //'the func array input is the right-hand vector
+        func[ll] = func[i];
+        if (ii != 0)
+        {
+            for (int j = ii; j < i; j++)//j = ii To i - 1
+            {
+            sum = sum - jmatrix[i][j] * func[j];
+            }
+        }
+        else
+        {
+            if (sum != 0)
+            ii = i;
+        }
+        func[i] = sum;
+    }
+    for (int i = unknowns - 1; i >= 0; i--) //i = unknowns To 1 Step -1
+    {
+        sum = func[i];
+        for (int j = i + 1; j < unknowns; j++) //j = i + 1 To unknowns
+        {
+            sum = sum - jmatrix[i][j] * func[j];
+        }
+        func[i] = sum / jmatrix[i][i];
+    }
+}
+
+int Plant::newtonrhapson(const int &dd, const double &p_inc, const double &e) //returns rhizosphere pressures and root pressure, pr, as function of pd's and e
+{
+
+    /* On first iteration, initialize rows and cols of jacobian matrix */
+    if (dd == 0) {
+        for (int k = 0; k < unknowns; k++) {
+            std::vector<double> temp;
+            for (int j = 0; j < unknowns; j++)
+                temp.push_back(0);
+            jmatrix.push_back(temp);
+        }
+    }
+
+    //'prinitial = pr //record the original guess
+    bool reset_guess = false; //tracks pr estimate
+    int heck = 0; //restart loop counter
+    int check = 0;
+    int ticks = 0;
+
+    std::string failspot;
+
+    double pr = xylem.soils[0]->root.getPressure(), // root pressure from top layer
+           frt = 0,
+           dfrdpr = 0,
+           p1 = 0,
+           p2 = 0,
+           flow = 0,
+           klower = 0,
+           kupper = 0,
+           initialthreshold = 0,
+           threshold = 0;
+
+    std::vector<double> func(layers + 1, 0.0),
+                        dfrhdprh(layers + 1, 0.0),
+                        dfrhdpr(layers + 1, 0.0),
+                        dfrdprh(layers + 1, 0.0);
+
+    do //loop to reset guesses
+    {
+        //'restore layer functioning
+        for (int z = 0; z < layers; z++)
+        {
+            if (xylem.soils[z]->root.getKmin() != 0)
+            {
+                xylem.soils[z]->cavitated = false; //make sure to start with all layers functioning
+                xylem.soils[z]->failure = "no failure"; //reset
+            }
+        }
+        // failspot = "no failure";
+
+        if (reset_guess == 1) //reset guesses
+        {
+            int k = rand() % layers;
+            pr = xylem.soils[k]->predawn_pressure; //random choice of pd
+
+            if (false) // can enable this is running into erroneous solutions -- but allowing these to vary instead of resetting results in more frequent solutions in my experience
+            { // alternatively could randomize them properly
+                for (k = 0; k < layers; k++) //reset prhz(k)
+                {
+                    xylem.soils[k]->rhizosphere.setPressure(xylem.soils[k]->predawn_pressure);
+                }
+            }
+
+            reset_guess = 0; //reset cutoff
+        } //end reset guesses loop
+        check = check + 1; //number of restarts
+        ticks = 0; //convergence counter
+
+        do //loop to seek convergence
+        {
+            ticks = ticks + 1;
+
+            if (ticks > 1000)
+            {
+                reset_guess = 1;
+                std::cout << "NR ticks exceeded 1000 -- setting reset_guess for retry. Pinc too high? dd = " << dd << std::endl;
+            }
+            //'get top row of matrix and right-hand func vector
+            //'zero out the jacobian first
+            for (int k = 0; k < unknowns; k++)
+            {
+                for (int j = 0; j < unknowns; j++)
+                    jmatrix[k][j] = 0;
+            }
+
+            //'fill up four arrays:
+            //'func(i) is zero flow function...the right-hand flow vector
+            //'dfrhdprh(i) is partial derivative of frh(i) for prh(i)(rhizo pressure)...the diagonal of the jacobian
+            //'dfrhdpr(i) is partial derivative of frh(i)for pr (root pressure)...the last column of the jacobian
+            //'dfrdprh(i) is partial derivative of fr for prh(i)...the last row of the jacobian
+            frt = 0; //this is the last row of right-hand flow vector
+            dfrdpr = 0; //this is lower right-hand partial for jacobian
+            for (int z = 0; z < layers; z++)
+            {
+                /* If predawn pressure or soil pressure is past PCrit, then cavitation has occured */
+                if (xylem.soils[z]->predawn_pressure >= xylem.soils[z]->rhizosphere.getPcrit() || xylem.soils[z]->rhizosphere.getPressure() >= xylem.soils[z]->rhizosphere.getPcrit())
+                {
+                    xylem.soils[z]->cavitated = 1; //layer's just gone out of function
+                    xylem.soils[z]->failure = "rhizosphere";
+                    //reset_guess = 1; //could be result of non-convergence
+                }
+                if (xylem.soils[z]->cavitated == 0)  //it's functional
+                {
+                    p1 = xylem.soils[z]->predawn_pressure; //p1 is not a guess
+                    p2 = xylem.soils[z]->rhizosphere.getPressure(); //prh[z] IS a guess and it is initially set prior to the RN routine
+                    xylem.soils[z]->rhizosphere.calc_through_flow(p1, p2, p_inc, flow, klower, kupper); //gets flows through rhizosphere element from p2-p1 and E(p)curve; gets K's at p1 and p2 as well
+                    func[z] = flow;
+                    dfrhdprh[z] = kupper;
+                }
+                if (xylem.soils[z]->rhizosphere.getPressure() >= xylem.soils[z]->root.getPcrit() || pr >= xylem.soils[z]->root.getPcrit())
+                {
+                    xylem.soils[z]->cavitated = 1; //layer's just gone out of function
+                    xylem.soils[z]->failure = "root";
+                    //reset_guess = 1; //could be result of non-convergence
+                }
+                if (xylem.soils[z]->cavitated == 0) //it's functional
+                {
+                    p1 = xylem.soils[z]->rhizosphere.getPressure(); //now re-set p1 to prh[z]...the guess
+                    p2 = pr; //guess comes from average predawn pressure across layers, set at soils[0]->root
+                    xylem.soils[z]->root.calc_through_flow(p1, p2, p_inc, flow, klower, kupper); //gets flows through root element, and K's at upper and lower bounds
+                    func[z] = func[z] - flow;
+                    dfrhdprh[z] = dfrhdprh[z] + klower;
+                    dfrhdpr[z] = -kupper;
+                    dfrdprh[z] = -klower;
+                }
+                if (xylem.soils[z]->cavitated == 1)  //layer's out of function...zero out values
+                {
+                    func[z] = 0;
+                    dfrhdprh[z] = 1E-25;
+                    dfrdprh[z] = 1E-25;
+                    dfrhdpr[z] = 1E-25;
+                    kupper = 1E-25;
+                    flow = 0;
+                }
+
+                dfrdpr = dfrdpr + kupper;
+                frt = frt + flow;
+            }
+                frt = frt - e;
+                //'now load jacobian
+            for (int k = 0; k < layers; k++)
+            {
+                jmatrix[k][unknowns - 1] = dfrhdpr[k]; //last column with dFrh/dPr partials
+            }
+            for (int k = 0; k < layers; k++)
+            {
+                jmatrix[unknowns - 1][k] = dfrdprh[k]; //last row with dFr/dPrh partials
+            }
+            for (int k = 0; k < layers; k++)
+            {
+                jmatrix[k][k] = dfrhdprh[k]; //diagonal of dFrh/dPrh partials
+            }
+            jmatrix[unknowns - 1][unknowns - 1] = dfrdpr; //lower right corner with dFr/dPr partial
+            func[unknowns - 1] = frt; //last position in right-hand flow vector
+
+                                //'ok, jacobian and righthand vector are loaded
+                                //'test for total failure
+            double sum = 0;
+            for (int k = 0; k < layers; k++)
+            {
+                sum = sum + xylem.soils[k]->cavitated;
+            }
+            if (sum == layers)  //total failure
+            {
+                failspot = "belowground";
+                reset_guess = 1; //trigger a restart
+            }
+            //'test for flow conservation (steady-state)
+            threshold = 0;
+            for (int k = 0; k < unknowns; k++) //k = 1 To unknowns
+            {
+                threshold = threshold + std::abs(func[k]);
+            }
+            if (ticks == 1)
+                initialthreshold = threshold;
+            //'remember to replace "n" with "unknowns" in ludcmp and lubksb
+            std::vector<int> indx(unknowns, 0.0);
+            ludcmp(unknowns, jmatrix, indx); //numerical recipe for doing LU decomposition of jacobian prior to solving
+            lubksb(unknowns, jmatrix, func, indx); //solves the decomposed jacobian for delta p's
+                    //'print out solution vector of pressures
+                    //'revise unknown pressures
+            for (int k = 0; k < layers; k++)//k = 1 To layers
+            {
+                xylem.soils[k]->rhizosphere.setPressure(xylem.soils[k]->rhizosphere.getPressure() - func[k]); //NOTE lubksb replaces original right-side func()vector with the solution vector
+            }
+            pr = pr - func[unknowns - 1];
+            //'check for jumping lower bound
+            for (int k = 0; k < layers; k++)//k = 1 To layers
+            {
+                if (xylem.soils[k]->rhizosphere.getPressure() < 0)
+                    xylem.soils[k]->rhizosphere.setPressure(0);
+            }
+            if (pr < 0)
+                pr = 0;
+            //'if pr > pcritr Then
+            //'pr = prinitial
+            //'reset_guess = 1 //trigger a re-start
+            //'}
+            if (ticks > 1)  //check for non convergence
+            {
+                if (threshold > initialthreshold) {
+                    reset_guess = 1;//pr is spiraling, restart NR with new guesses
+                }
+                if (pr >= xylem.stem.getPcrit()) {
+                    reset_guess = 1; //
+                }
+            }
+        } while (!(threshold < 0.02 || reset_guess == 1));
+        //Loop Until threshold < 0.01 Or reset_guess = 1 //reset_guess = 1 restarts NR
+    } while (!((threshold < 0.02 && reset_guess == 0) || check > 500));
+
+    if (check > 500)
+    {
+        double waterold = data.getColumnValue("water-content", dd) / 1000;
+        // disable this output if it's causing too much spam
+        //std::cout << "NR Failure " << threshold << " check = " << check << " dd = " << dd << " watercontent = " << waterold * 1000.0 << " reset_guess = " << reset_guess << std::endl;
+        // keep track of the frequency of NR failures
+        gs_data.setColumnValue(gs_data.getColumnValue("fail-converge", gs_yearIndex) + 1,
+                               gs_yearIndex,
+                               "fail-converge"); // non-convergent failure
+        gs_data.setColumnValue(gs_data.getColumnValue("fail-converge-water", gs_yearIndex) + waterold * 1000.0,
+                               gs_yearIndex,
+                               "fail-converge-water"); // non-convergent failure
+        if (waterold * 1000.0 > gs_data.getColumnValue("fail-converge-water-max", gs_yearIndex)) 
+            gs_data.setColumnValue(waterold * 1000, gs_yearIndex, "fail-converge-water-max");
+
+    }
+
+    // //Loop Until threshold < 0.01 And reset_guess = 0 Or check > 500 //give up after 2000 restarts
+    // //'if check >= 500 Then Stop
+
+    // //final step -- recheck the layers
+    for (int z = 0; z < layers; z++)
+    {
+        if (xylem.soils[z]->root.getKmin() != 0)
+        {
+            xylem.soils[z]->cavitated = false; //make sure to start with all layers functioning
+            xylem.soils[z]->failure = "no failure"; //reset
+        }
+
+        if (xylem.soils[z]->predawn_pressure >= xylem.soils[z]->rhizosphere.getPcrit() || xylem.soils[z]->rhizosphere.getPressure() >= xylem.soils[z]->rhizosphere.getPcrit())
+        {
+            xylem.soils[z]->cavitated = true; //layer's just gone out of function
+            xylem.soils[z]->failure = "rhizosphere";
+        }
+        if (xylem.soils[z]->rhizosphere.getPressure() >= xylem.soils[z]->root.getPcrit() || pr >= xylem.soils[z]->root.getPcrit())
+        {
+            xylem.soils[z]->cavitated = true; //layer's just gone out of function
+            xylem.soils[z]->failure = "root";
+        }
+        xylem.soils[z]->root.setPressure(pr); // set initial root pressure
+    }
+
+    return check;
+}
+
+int Plant::compositeCurve(const double &e, const int &p) //'stores composite E(P)curve and the element conductances
+{
+    double p1 = 0,
+           p2 = 0,
+           flow = 0,
+           klower = 0,
+           kupper = 0,
+           x = 0,
+           total = 0;
+
+    int test = 0;
+    xylem.soils[0]->root.setEComp(p, 0); //'no root mediated flow in topmost layer
+    for (int z = 1; z < layers; z++)//z = 1 To layers
+    {
+        if (xylem.soils[z]->cavitated == false) { //if//
+            xylem.soils[z]->rhizosphere.setPressureComp(p, xylem.soils[z]->rhizosphere.getPressure());
+            p1 = xylem.soils[z]->rhizosphere.getPressure();
+            p2 = xylem.soils[0]->root.getPressure();
+            xylem.soils[z]->root.calc_through_flow(p1, p2, param.getModelParam("p_inc"), flow, klower, kupper);
+            xylem.soils[z]->root.setEComp(p, flow); // flow through layer
+            if (flow != 0)
+                xylem.soils[z]->root.setKComp(p, xylem.soils[z]->root.getEComp(p) / xylem.soils[0]->root.getPressure() - xylem.soils[z]->rhizosphere.getPressure());
+            if (flow == 0) { //if//
+                if (refilling == false) { //if// //'for refilling, starting point is always weibull
+                    x = xylem.soils[z]->predawn_pressure;
+                    xylem.soils[z]->root.setKComp(p, xylem.soils[z]->root.wb(x));
+                } //End if//
+                if (refilling == false)
+                    xylem.soils[z]->root.setKComp(p, xylem.soils[z]->root.getKmin());
+            } //End if//
+        } //End if//
+        if (xylem.soils[z]->cavitated == 0) { //if//
+            xylem.soils[z]->root.setEComp(p, 0); //'no flow
+            if (xylem.soils[z]->failure == "root") { //if// //'root element has failed
+                xylem.soils[z]->root.setKComp(p, 0); //'total cavitation in root
+                xylem.soils[z]->rhizosphere.setPressureComp(p, xylem.soils[z]->predawn_pressure); //'rhizosphere pressure returns to the predawn value
+            } //End if//
+            if (xylem.soils[z]->failure == "rhizosphere") { //if// //'rhizosphere element has failed
+                    x = xylem.soils[z]->root.getPressure();
+                    xylem.soils[z]->root.setKComp(p, xylem.soils[z]->root.wb(x)); //'root element conductance = instantaneous conductance from weibull curve at pr
+                    xylem.soils[z]->rhizosphere.setPressureComp(p, xylem.soils[z]->rhizosphere.getPcrit());
+            } //End if//
+        } //End if//
+    } //for//z
+    xylem.soils[0]->root.setPressureComp(p, xylem.soils[0]->root.getPressure());
+    xylem.stem.setPressureComp(p, xylem.stem.getPressure());
+    xylem.leaf.setPressureComp(p, xylem.leaf.getPressure());
+    
+    if (e > 0) { //if// 
+        xylem.leaf.setKComp(p, e / (xylem.leaf.getPressure() - xylem.stem.getPressure())); //'leaf element conductance
+        xylem.stem.setKComp(p, e / (xylem.stem.getPressure() - xylem.soils[0]->root.getPressure() - param.getModelParam("p_grav"))); //'stem element conductance subtracting extra gravity drop
+        xylem.k[p] = e / (xylem.leaf.getPressure() - xylem.leaf.getPressureComp(0) - param.getModelParam("p_grav")); //'whole plant k, subtracting extra gravity drop
+    }
+    else {
+        if (refilling == false) { //if//
+            xylem.leaf.setKComp(p, xylem.leaf.getKmin()); //'leaf element conductance
+            xylem.stem.setKComp(p, xylem.stem.getKmin()); //'stem element conductance subtracting extra gravity drop
+            xylem.k[p] = param.getModelParam("k_min"); //'whole plant k, subtracting extra gravity drop
+        } //End if//
+        if (refilling == true) { //if//
+            xylem.leaf.setKComp(p, xylem.leaf.wb(xylem.leaf.getPressure()));
+            xylem.stem.setKComp(p, xylem.stem.wb(xylem.stem.getPressure())); //'stem element conductance subtracting extra gravity drop
+            //'kplant[p]=??? ignore kplant setting for e=0...probably not important
+        } //End if//
+        //'dedp[p] = kminplant
+    } //End if//
+    xylem.e_p[p] = e; //'total flow
+    if (p > 0) { //if//
+        if (xylem.leaf.getPressureComp(p) - xylem.leaf.getPressureComp(p - 1) == 0) { //if//
+            test = 1;
+        }
+        // else { // These are never used...
+        //     dedp[p] = param.getModelParam("e_inc") / (pleaf[p] - pleaf[p - 1]); //'dedp=instantaneous K of system
+        //     dedpf[p] = dedp[p] / dedp[1]; //'fractional canopy conductance
+        // } //End if//
+    } //End if//
+    pcritsystem = xylem.leaf.getPressure();
+    ecritsystem = e;
+    total = p;
+
+    return test;
+}
+
+void Plant::solarcalc(const int &dd,
+                      const int &jd,
+                      const double &obssolar,
+                      const double &maxvpd,
+                      const double &airtemp,
+                      const double &vpd,
+                      double &lai,
+                      double &laisl,
+                      double &laish,
+                      double &qsl,
+                      double &qsh,
+                      double &ssun,
+                      double &sref,
+                      double &la,
+                      double &lg) //'gets radiative terms for energy balance and assimilation
+{
+    /* Variables, once everything is ported will move into carbon assimilation class for use in all solar/carbon calculations */
+    double fet,
+           et,
+           sm,      // not used
+           longitude,
+           tsncorr,
+           tsn,
+           sindec,
+           dec,
+           cosdec,
+           tim,
+           lat,
+           coszen,
+           zen,
+           cosaz,
+           az,
+           m,
+           patm,
+           sp,
+           tau,
+           sb,
+           sd,
+           st,
+           cloud,
+           fcd,
+           xang,
+           kbe,
+           kbezero,
+           mleafang,
+           rad,
+           sum,
+           k1,
+           t1,
+           t2,
+           told,
+           kd,
+           qd,
+           qds,
+           qdt,
+           qb,
+           qbt,
+           qsc,
+           parsh,
+           parsl,
+           parbottom,
+           nirsh,
+           nirsl,
+           sshade,
+           sbottom,
+           ssunb, // not used
+           ssund, // not used
+           par,
+           ppfd,  // not used
+           ea,
+           eac;
+
+    longitude = param.getModelParam("longitude");
+    lat = param.getModelParam("lat");
+    tau = param.getModelParam("tau");
+    tsncorr = param.getModelParam("tsn_corr");
+    patm = param.getModelParam("p_atm");
+    xang = param.getModelParam("leaf_angle_param");
+
+
+    //'j = Cells(14 + i, 3) //'julian day
+    fet = 279.575 + 0.9856 * jd; //'jd is julian day, fet is factor for CN eqn 11.4
+    fet = fet * PI / 180.0; //'convert to radians
+    et = (-104.7 * sin(fet) + 596.2 * sin(2 * fet) + 4.3 * sin(3 * fet) - 12.7 * sin(4 * fet) - 429.3 * cos(fet) - 2 * cos(2 * fet) + 19.3 * cos(3 * fet)) / 3600.0; //'"equation of time" in fraction of HOURS C&N 11.4
+                                                                                                                                                                    //'long = Cells(11, 4) //'longitude in degree fraction W
+    sm = 15 * int(longitude / 15.0); //'standard meridian east of longitude
+                                    //'lc = 0.0666667 * (sm - longitude) //'CN 11.3 for longitude correction in fraction of hours
+    tsn = 12 - tsncorr - et; //'time of solar noon in hour fraction from midnight, CN 11.3
+                            //'Cells(14 + i, 5) = tsn //'output solar noon
+    sindec = PI / 180.0 * (356.6 + 0.9856 * jd);
+    sindec = sin(sindec);
+    sindec = PI / 180.0 * (278.97 + 0.9856 * jd + 1.9165 * sindec);
+    sindec = 0.39785 * sin(sindec); //'sine of the angle of solar declination
+                                    //'lat = Cells(10, 4) //'latitude, fraction of degrees N
+    dec = atan(sindec / pow((-sindec * sindec + 1), 0.5)); //'arcsin of sindec in radians, dec is solar declination
+                                                            //'Cells(14 + i, 6) = dec * 180 / PI //'output solar declination
+    cosdec = cos(dec);
+    //'timst = Cells(14 + i, 4) //'local standard time, hour fraction from midnight
+    tim = 15 * (tod - tsn);
+    tim = PI / 180.0 * tim; //'convert to radians
+    coszen = sin(lat) * sindec + cos(lat) * cosdec * cos(tim); //'cos of zenith angle of sun from overhead, CN11.1
+    zen = atan(-coszen / pow((-coszen * coszen + 1), 0.5)) + 2 * atan(1); //'zenith in radians
+                                                                            //'if zen < 1.57 { Cells(14 + i, 7) = zen * 180 / PI //'output when sun//'s up (zen<90)
+    cosaz = -(sindec - cos(zen) * sin(lat)) / (cos(lat) * sin(zen)); //'cos of azimuth angle measured counterclockwize from due south CN 11.5
+    if (cosaz < -1)
+        cosaz = -1; //'keep it in limits
+    if (cosaz > 1)
+        cosaz = 1; //'ditto
+    if (cosaz == 1 || cosaz == -1) { //'keeps stupid acos eqn from crashing
+        if (cosaz == 1)
+            az = 0;
+        if (cosaz == -1)
+            az = 3.14159; //'180 in radians
+    }
+    else {
+        az = atan(-cosaz / pow((-cosaz * cosaz + 1), 0.5)) + 2 * atan(1); //'solar az in radians
+    } //Endif//
+    if (tod > tsn)
+        az = 6.28319 - az; //'correct for afternoon hours!
+                            //'if zen < 1.57 { Cells(14 + i, 8) = az * 180 / PI//'output azimuth during day
+                            //'dayl = (-Sin(lat) * sindec) / (Cos(lat) * Cos(dec))
+                            //'dayl = Atn(-dayl / Sqr(-dayl * dayl + 1)) + 2 * Atn(1)
+                            //'dayl = 2 * dayl / 15
+                            //'Cells(14 + i, 9) = dayl * 180 / PI
+    if (zen * 180 / PI < 90) { //'sun//'s up: calculate solar radiation
+                                //'pa = Cells(12, 4) //'atmospheric p in kpa
+                                //'Cells(16 + dd, 8) = zen * 180 / PI //'zenith angle in degrees
+                                //'Cells(16 + dd, 9) = lat
+                                //'night = "n" //'its officially day
+        m = patm / (101.3 * cos(zen)); //'CN 11.12
+                                        //'spo = Cells(9, 4) //'solar constant
+                                        //'tau = Cells(8, 4) //'transmittance, CN 11.11
+        sp = SOLAR * pow(tau, m); //'direct beam irradiance Wm-2
+        sb = sp * cos(zen); //'direct beam irradiance on horizontal surface
+                            //'Cells(14 + i, 11) = sb
+        sd = 0.3 * (1 - pow(tau, m)) * SOLAR * cos(zen); //'clear sky diffuse radiation
+                                                        //'Cells(14 + i, 12) = sd
+        st = sd + sb; //'total horizontal irradiance from sun (w/o reflected radiation)
+        cloud = SOLAR * pow(0.4, m) * cos(zen); //'overcast threshold
+                                                //'stobs = Cells(13, 4) //'observed solar radiation on the horizontal Wm-2
+        if (obssolar > 0) { //'we//'ve got solar data
+            if (obssolar < st) { //'we//'ve got clouds
+            if (obssolar > cloud) { //'we//'ve got partial clouds
+                fcd = 1 - (obssolar - cloud) / (st - cloud); //'fraction for converting beam to diffuse
+                sd = sd / st + fcd * sb / st; //'diffuse/total rato
+                sd = sd * obssolar; //'multiply ratio by total observed to get total diffuse
+                sb = obssolar - sd; //'leftover beam
+                st = obssolar; //'reset to stobs
+            }
+            else { //'its all clouds
+                sd = obssolar;
+                sb = 0;
+                st = obssolar;
+            } //Endif//
+            } //Endif// //'if no clouds, everything//'s already set
+        } //Endif// //'if no solar data, we assume no clouds
+        //'calculate reflected light as if it is equal to light at bottom of canopy
+        //'xang = Cells(12, 11) //'leaf angle parameter, CN 15.4
+        //'if zen < 1.57 { //'sun//'s up:
+        kbe = pow((pow(xang, 2.0) + pow((tan(zen)), 2.0)), 0.5) / (xang + 1.774 * pow((xang + 1.182), -0.733)); //'beam extinction coefficient CN 15.4
+                                                                                                                //kbe = Sqr(xang ^ 2 + (Tan(zen)) ^ 2) / (xang + 1.774 * (xang + 1.182) ^ -0.733) 'beam extinction coefficient CN 15.4
+        kbezero = xang / (xang + 1.774 * pow((xang + 1.182), -0.733)); //'beam extinction for zen=0(overhead
+        mleafang = atan(-kbezero / pow((-kbezero * kbezero + 1), 0.5)) + 2 * atan(1); //'mean leaf angle in radians
+                                                                                    //'Cells(14 + i, 20) = kbe
+                                                                                    //'Cells(14 + i, 21) = mleafang * 180 / PI //'mean leaf angle in degrees
+                                                                                    //'lai = Cells(13, 11) //'canopy leaf area index
+                                                                                    //'abspar = Cells(7, 17) //'absorptivity for PAR of leaves
+                                                                                    //'abssol = Cells(8, 17) //'absorptivity for total solar of leaves
+                                                                                    //'gdbeamf = Exp(-Sqr(abssol) * kbe * lai) //'CN 15.6, fraction of solar beam radiation reaching ground
+                                                                                    //'Cells(14 + i, 22) = gdbeamf
+                                                                                    //'now solve for kd (diffuse extinction) by integrating beam over all possible zenith angles from 0 to 90, CN 15.5
+        rad = 0;
+        sum = 0;
+        k1 = pow((pow(xang, 2) + pow((tan(rad)), 2)), 0.5) / (xang + 1.774 * pow((xang + 1.182), -0.733));  //'beam extinction coefficient CN 15.4
+        t1 = exp(-k1 * lai); //'transmittance CN 15.1
+        told = t1 * sin(rad) * cos(rad); //'integral function
+        do
+        {
+            rad = rad + 0.015708; //'0.9 degree intervals, zenith angle in radians
+            k1 = pow((pow(xang, 2) + pow((tan(rad)), 2)), 0.5) / (xang + 1.774 * pow((xang + 1.182), -0.733));  //'beam extinction coefficient CN 15.4
+            t1 = exp(-k1 * lai); //'transmittance CN 15.1
+            t2 = t1 * sin(rad) * cos(rad); //'integral function
+            sum = sum + (t2 + told) / 2.0 * 0.015708; //'integral sum
+            told = t2; //'reset
+        } while (!(rad > 1.5708));
+        //Loop Until rad > 1.5708 //'loop until 90 degrees
+        sum = sum * 2; //'complete summing
+        kd = -log(sum) / lai; //'extinction coefficient for diffuse radiation
+                            //'Cells(14 + i, 23) = kd //'output
+                            //'now...compute shaded leaf ppfd, q denotes a ppfd
+        qd = 0.45 * sd * 4.6; //'converts total solar diffuse to PPFD diffuse in umol m-2 s-1
+        qds = qd * (1 - exp(-(pow(ABS_PAR, 0.5) * kd * lai))) / (pow(ABS_PAR, 0.5) * kd * lai); //'mean diffuse irradiance for shaded leaves CN p. 261
+        qdt = qd * exp(-(pow(ABS_PAR, 0.5) * kd * lai)); //'diffuse irradiance at bottom of canopy, CN p. 255, Eqn 15.6
+        qb = 0.45 * sb * 4.6; //'converts total solar beam to PPFD
+        qbt = qb * exp(-(pow(ABS_PAR, 0.5) * kbe * lai)); //'direct AND downscattered PPFD at bottom of canopy, CN 15.6
+        qb = qb * exp(-(kbe * lai)); //'direct PPFD at bottom of canopy,CN 15.1
+        qsc = (qbt - qb) / 2.0; //'average backscattered beam on shaded leaves
+        qsh = qds + qsc; //'average PPFD incident (not absorbed!) on shaded leaves
+        qb = 0.45 * sb * 4.6; //'re-set qb to top of canopy
+                            //'now get sunlit leaf ppfd
+        qsl = kbe * qb + qsh; //'average PPFD incident (not absorbed) on sunlit leaves
+                            //'now get sunlit vs. shaded lai
+        laisl = (1 - exp(-(kbe * lai))) / kbe; //'sunlit lai
+        laish = lai - laisl; //'shaded lai
+                            //'now get sun and shade PAR, NIR, & longwave in preparation for energy balance
+                            //'in par range
+        parsh = qsh / 4.6; //'incident PAR, Wm-2, shaded leaves, 100% diffuse
+        parsl = qsl / 4.6;//'incident PAR, sunlit leaves
+        parbottom = (qbt + qdt) / 4.6; //'PAR making it through the canopy
+                                        //'in near-infrared range (assume same equations as for PAR, but different absorptances and incoming fluxes in Wm-2
+                                        //'absnir = Cells(9, 17) //'absorptivity of leaves to NIR
+        qd = 0.55 * sd; //'converts total solar diffuse to NIR diffuse in Wm-2
+        qds = qd * (1 - exp(-(pow(ABS_NIR, 0.5) * kd * lai))) / (pow(ABS_NIR, 0.5) * kd * lai); //'mean diffuse nir irradiance for shaded leaves CN p. 261
+        qdt = qd * exp(-(pow(ABS_NIR, 0.5) * kd * lai)); //'diffuse NIR irradiance at bottom of canopy, CN p. 255, Eqn 15.6
+        qb = 0.55 * sb; //'converts total solar beam to NIR
+                        //'qb = 1600
+        qbt = qb * exp(-(pow(ABS_NIR, 0.5) * kbe * lai)); //'direct AND downscattered NIR at bottom of canopy, CN 15.6
+        qb = qb * exp(-(kbe * lai)); //'direct NIR at bottom of canopy,CN 15.1, using same extinction coefficient as for PAR
+        qsc = (qbt - qb) / 2.0; //'average backscattered beam on shaded leaves
+        nirsh = (qds + qsc); //'incident NIR on shaded leaves, 100% diffuse
+        qb = 0.55 * sb; //'re-set nir qb to top of canopy to get sunlit leaves
+        nirsl = kbe * qb + nirsh; //'average incident NIR on sunlit leaves
+        sshade = parsh + nirsh; //'total solar incident on shaded leaves, 100% diffuse
+        ssun = parsl + nirsl; //'total solar incident on sunlit leaves
+        sbottom = parbottom + qdt + qbt; //'total solar at bottom of canopy
+        ssunb = sb / st * ssun; //'beam solar on sunlit (an approximation)
+        ssund = sd / st * ssun;//'diffuse solar on sunlit (approximation)
+                                //'abssolar = Cells(8, 17) //'absorptivity of leaves for total solar (0.5)
+        sref = (1 - ABS_SOLAR) * sshade; //'reflected light...this used for sun/shade dichotomy
+        sref = (1 - ABS_SOLAR) * sbottom; //'reflected light for monolayer version
+                                        //'these below are used for monolayer version:
+        par = 0.45 * st; //'wm-2 in par wavelength...45% of total solar
+        ppfd = par * 4.6; //'assumes 4.6 moles photons per Joule conversion factor
+    }
+    else { //'sun//'s down
+        sp = 0; sb = 0; sd = 0; st = 0; sref = 0; par = 0; ppfd = 0; sref = 0; ssun = 0; sshade = 0;
+        qsh = 0; qsl = 0; ssunb = 0; ssund = 0; laisl = 0; laish = 0; sbottom = 0; //'sun//'s down
+                                                                                    //'night = "y" //'it//'s officially night
+    } //Endif//
+        //'now compute long wave irradiance
+    ea = patm * (maxvpd - vpd); //'vapor pressure in kPa
+                                //'ta = Cells(3, 19) + 273.15 //'air temp in K
+    eac = 1.72 * pow((ea / (airtemp + 273.15)), (1.0 / 7.0)); //'emissivity of clear sky CN  10.10
+                                                                //'boltz = Cells(9, 11) //'boltzman constant
+    la = eac * SBC * pow((airtemp + 273.15), 4); //'long wave irradiance from clear sky
+    lg = 0.97 * SBC * pow((airtemp + 273.15), 4); //'long wave irradiance from ground...assumes equilibrium with air temp
+                                                    //'Cells(14 + i, 16) = la
+                                                    //'Cells(14 + i, 17) = lg
 }
