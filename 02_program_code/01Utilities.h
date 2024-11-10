@@ -53,7 +53,7 @@
 #define GAS 8.3144598               // Universal gas constant J mol-1K-1
 #define OA 0.21                     // Mole fraction of O2
 #define SOLAR 1362                  // Solar constant W m-2
-#define ABS_OLAR 0.5                // Absorptivity of solar for leaves
+#define ABS_SOLAR 0.5                // Absorptivity of solar for leaves
 #define ABS_PAR 0.8                 // Absorptivity of PAR for leaves
 #define ABS_NIR 0.2                 // Absorptivity of near infrared for leaves
 #define MAX_YEARS 90
@@ -544,7 +544,7 @@ T CSVData<T>::getColumnValue(const std::string &column_name, int row/*=0*/) {
         assert(col_index < data[row].size());
         return data[row][col_index];
     } else {
-        fprintf(stderr, "Column name %s does not exist\n", column_name.c_str());
+        fprintf(stderr, "Column name %s does not exist, creating...\n", column_name.c_str());
         setColumnValue(T(), row, column_name);
     }
     return T();
