@@ -31,7 +31,10 @@ struct SoilLayer {
             radius,
             length,
             swclimit,
-            soilredist;
+            soilredist,
+            predawn_pressure;
+    bool    cavitated = 0;
+    std::string  failure;
 };
 
 class XylemComponent {
@@ -48,6 +51,7 @@ class XylemComponent {
         int num_layers;
 
         double e_p[CURVE_MAX] = {0}; // whole xylem transpiration curve
+        double k[CURVE_MAX] = {0}; // whole xylem conductance curve
         double root_pressure[CURVE_MAX] = {0}; // composite root pressure
         
         /* Used for something! */
@@ -102,6 +106,21 @@ class XylemComponent {
 
         // function that accounts for xylem cavitation fatigue
         double fatigue(double &b_wb, const double &sapwood_t, const double &conduit_d, const double &max_plc_x);
+
+        void printCurveToFile(const double &p_inc, const double &p_crit, const std::string &filename) const {
+            std::ofstream outFile(filename);
+            if (!outFile) {
+            std::cerr << "Error opening file: " << filename << std::endl;
+            return;
+            }
+
+            outFile << "p_inc,E(P)" << std::endl;
+            for (int i = 0; p_inc * i <= p_crit; ++i) {
+            outFile << p_inc * i << "," << e_p[i] << std::endl;
+            }
+
+            outFile.close();
+        }
 };
 
 #endif
