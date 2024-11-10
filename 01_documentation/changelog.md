@@ -1,5 +1,10 @@
 # Changelog
-Changelog as of 09/23/24
+Changelog as of 11/09/24
+
+## 11/09/24 (3.0.2)
+* Porting over code
+  * Minor changes to getsoilwetness to preserve fieldcapacity and water data
+  * Ported solarcalc, predawns, newtonrhapson, and compositecurve 
 
 ## 11/02/24 (3.0.1)
 * Continued porting over code
