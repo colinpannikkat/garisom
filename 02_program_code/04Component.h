@@ -33,7 +33,9 @@ class Component {
                 cond_wb,        // weibull conductance, 1/res_wb           
                 k_max,          // kmax, conductance per basal area
                                 // ksat used interchangably
-                p_crit;         // critical pressure, of VC
+                p_crit,         // critical pressure, of VC
+                k_min,
+                pressure;       // downstream pressure used in composite calculations
         std::vector<double> wb_fatigue;
         double e_p[CURVE_MAX] = {0};    // E(P) curve for component
         double e_pv[CURVE_MAX] = {0};   // Virgin E(P) curve
@@ -41,7 +43,7 @@ class Component {
         double k[CURVE_MAX] = {0};      // K (conductivity) curve for component
         double k_v[CURVE_MAX] = {0};    // Virgin K (conductivity) curve for component
         double k_comp[CURVE_MAX] = {0}; // New(conductivity) curve for component based on other components
-        double pressure[CURVE_MAX] = {0};
+        double pressure_comp[CURVE_MAX] = {0};
 
     public:
 
@@ -52,11 +54,14 @@ class Component {
         double getResWb();
         double getCondWb();
         double getKmax();
+        double getPcrit();
+        double getKmin();
+        double getPressure();
         double& getFatigue(int index);
-        double& getPressure(int index);
+        double& getPressureComp(int index);
         double& getEp(int index);
         double& getEpVirgin(int index);
-        double& getEcomp(int index);
+        double& getEComp(int index);
         double& getK(int index);
         double& getKVirgin(int index);
         double& getKComp(int index);
@@ -68,10 +73,13 @@ class Component {
         void setResWb(double value);
         void setCondWb(double value);
         void setKmax(double value);
+        void setPcrit(double value);
+        void setKmin(double value);
+        void setPressure(double value);
         void setFatigue(int index, double value);
-        void setPressure(int index, double value);
+        void setPressureComp(int index, double value);
         void setEp(int index, double value);
-        void setEcomp(int index, double value);
+        void setEComp(int index, double value);
         void setEpVirgin(int index, double value);
         void setK(int index, double value);
         void setKVirgin(int index, double value);
@@ -108,9 +116,15 @@ class Component {
                 - Steady-state flow rate: e_p
         */ 
         void calc_flow_rate(const double &p_inc, const double &k_min, bool virgin=false);
-
         void trapzd(const double &p1, const double &p2, double &s, const int &t, int &it);
         void virtual qtrap(double &p1, double &p2, double &s);
+        void virtual calc_through_flow(const double &p1, 
+                                       const double &p2, 
+                                       const double &p_inc,
+                                       double &flow,
+                                       double &klower,
+                                       double &kupper);
+        int virtual calc_pressure(const double &e, const double &bottom_pressure, const double &p_grav, const double &p_inc);
 
         void printCurveToFile(const double &p_inc, const std::string &filename) const {
             std::ofstream outFile(filename);
