@@ -16,7 +16,6 @@ void RhizosphereComponent::setThetasat(double thetasat) {
 }
 double RhizosphereComponent::getThetaSat() { return thetasat; }
 
-
 /**
  * @brief Calculates the van Genuchten (vg) function for a given pressure.
  *
@@ -32,6 +31,17 @@ double RhizosphereComponent::getThetaSat() { return thetasat; }
 double RhizosphereComponent::vg(double pressure) {
     double vp = 1 / (pow((van_gen_alpha * pressure), van_gen_n) + 1);
     return k_max * pow(vp, ((van_gen_n - 1) / (2 * van_gen_n))) * pow((pow((1 - vp), ((van_gen_n - 1) / van_gen_n)) - 1), 2);
+}
+
+double RhizosphereComponent::rvg(double pressure) { //'gives soil Y in MPa from soil theta/thetasat=x
+    double aa = pow((pow(pressure, (1 / (1 - 1 / van_gen_n))) + 1), (1 / van_gen_n));
+    double bb = (pow(pressure, (1 / (van_gen_n - 1))) * van_gen_alpha);
+    return aa / bb;
+}
+
+double RhizosphereComponent::swc(double pressure) { //'gives soil water content, theta/thetasat from soil water potential in MPa=x
+    //swc = (1 / (1 + (a(z) * x) ^ n(z))) ^ (1 - 1 / n(z))
+    return pow((1 / (1 + pow((van_gen_alpha * pressure), van_gen_n))), (1 - 1 / van_gen_n));
 }
 
 void RhizosphereComponent::trapzd(const double &p1, const double &p2, double &s, const int &t, int &it) { //integrates root element z weibull

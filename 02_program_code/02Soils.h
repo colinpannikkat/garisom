@@ -35,6 +35,8 @@ class RhizosphereComponent : public Component {
         double getThetaSat();
 
         double vg(double pressure);
+        double rvg(double pressure);
+        double swc(double pressure);
 
         void trapzd(const double &p1, const double &p2, double &s, const int &t, int &it);
         void qtrap(double &p1, double &p2, double &s);
