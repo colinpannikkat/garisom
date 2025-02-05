@@ -3,6 +3,7 @@
 *_OUTPUT_*
 *.dSYM
 garisom205
+main
 env/*
 cottonwood_leafcooling2023/
 aspen_lowstress_data/
