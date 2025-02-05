@@ -23,6 +23,12 @@ double& Component::getPressureComp(int index) {
     }
     return pressure_comp[index];
 }
+double& Component::getPressureVirgin(int index) {
+    if (index < 0 || index >= CURVE_MAX) {
+        throw std::out_of_range("Index out of range");
+    }
+    return pressure_v[index];
+}
 
 double& Component::getEp(int index) {
     if (index < 0 || index >= CURVE_MAX) {
@@ -92,6 +98,13 @@ void Component::setPressureComp(int index, double value) {
     pressure_comp[index] = value;
 }
 
+void Component::setPressureVirgin(int index, double value) {
+    if (index < 0 || index >= CURVE_MAX) {
+        throw std::out_of_range("Index out of range");
+    }
+    pressure_v[index] = value;
+}
+
 void Component::setEp(int index, double value) {
     if (index < 0 || index >= CURVE_MAX) {
         throw std::out_of_range("Index out of range");
@@ -134,10 +147,171 @@ void Component::setKComp(int index, double value) {
     k_comp[index] = value;
 }
 
+/* Storage functions */
+
+/* Stores transpiration curve */
+void Component::storeTranspirationCurve() {
+    int i = 0;
+    do
+    {
+        e_pt[i] = e_p[i];
+
+        i = i + 1;
+        if (i == (CURVE_MAX - 1))
+            break;
+    } while (e_p[i] != 0 || e_pt[i] != 0);
+}
+
+/* Stores conductivity curve */
+void Component::storeConductivityCurve() {
+    int i = 0;
+    do
+    {
+        k_t[i] = k[i];
+
+        i++;
+        if (i == (CURVE_MAX - 1))
+            break;
+    } while (k[i] != 0 || k_t[i] != 0);
+}
+
+/* Stores both conductivity and transpiration curves */
+void Component::storeCurves() {
+    int i = 0;
+    do
+    {
+        e_pt[i] = e_p[i];
+        k_t[i] = k[i];
+
+        i++;
+        if (i == (CURVE_MAX - 1))
+            break;
+    } while (k[i] != 0 || e_p[i] != 0 || e_pt[i] != 0 || k_t[i] != 0);
+}
+
+/* Stores transpiration curve and uses virgin curve */
+void Component::storeTranspirationCurveAndUseVirgin() {
+    int i = 0;
+    do
+    {
+        e_pt[i] = e_p[i];
+        e_p[i] = e_pv[i];
+
+        i = i + 1;
+        if (i == (CURVE_MAX - 1))
+            break;
+    } while (e_p[i] != 0 || e_pv[i] != 0 || e_pt[i] != 0); // I don't believe these checks to be right
+}
+
+/* Stores conductivity curve and uses virgin curve */
+void Component::storeConductivityCurveAndUseVirgin() {
+    int i = 0;
+    do
+    {
+        k_t[i] = k[i];
+        k[i] = k_v[i];
+
+        i++;
+        if (i == (CURVE_MAX - 1))
+            break;
+    } while (k[i] != 0 || k_v[i] != 0 || k_t[i] != 0); // I don't believe these checks to be right
+}
+
+/* Stores both conductivity and transpiration curves and uses virgin */
+void Component::storeCurvesAndUseVirgin() {
+    int i = 0;
+    do
+    {
+        e_pt[i] = e_p[i];
+        k_t[i] = k[i];
+
+        e_p[i] = e_pv[i];
+        k[i] = k_v[i];
+
+        i++;
+        if (i == (CURVE_MAX - 1))
+            break;
+    } while (e_p[i] != 0 ||  e_pv[i] != 0 || e_pt[i] != 0); // I don't believe these checks to be right
+}
+
+/* Restores transpiration curve from historical */
+void Component::restoreTranspirationCurve() {
+    int i = 0;
+    do
+    {
+        e_p[i] = e_pt[i];
+
+        i = i + 1;
+        if (i == (CURVE_MAX - 1))
+            break;
+    } while (e_pt[i] != 0 || e_p[i] != 0);
+}
+
+/* Restores conductivity curve from historical */
+void Component::restoreConductivityCurve() {
+    int i = 0;
+    do
+    {
+        k[i] = k_t[i];
+
+        i = i + 1;
+        if (i == (CURVE_MAX - 1))
+            break;
+    } while (k_t[i] != 0 || k[i] != 0);
+}
+
+/* Restores conductivity and transpiration curve from historical */
+void Component::restoreCurves() {
+    int i = 0;
+    do
+    {
+        k[i] = k_t[i];
+        e_p[i] = e_pt[i];
+
+        i = i + 1;
+        if (i == (CURVE_MAX - 1))
+            break;
+    } while (e_pt[i] != 0 || e_p[i] != 0); // I believe these checks are incomplete
+}
+
+/* Clears historical curve storage */
+void Component::clearHistoricalCurves() {
+    memset(this->e_pt, 0, sizeof(this->e_pt));
+    memset(this->k_t, 0, sizeof(this->k_t));
+}
+
+/* Clean parameters */
+void Component::cleanParameters() {
+    b_wb = 0.0;
+    c_wb = 0.0;
+    res_percent = 0.0;
+    res_wb = 0.0;
+    cond_wb = 0.0;
+    k_max = 0.0;
+    p_crit = 0.0;
+    k_min = 0.0;
+    pressure = 0.0;
+    wb_fatigue.clear();
+    std::fill(std::begin(e_p), std::end(e_p), 0.0);
+    std::fill(std::begin(e_pv), std::end(e_pv), 0.0);
+    std::fill(std::begin(e_comp), std::end(e_comp), 0.0);
+    std::fill(std::begin(e_pt), std::end(e_pt), 0.0);
+    std::fill(std::begin(k), std::end(k), 0.0);
+    std::fill(std::begin(k_v), std::end(k_v), 0.0);
+    std::fill(std::begin(k_comp), std::end(k_comp), 0.0);
+    std::fill(std::begin(k_t), std::end(k_t), 0.0);
+    std::fill(std::begin(pressure_comp), std::end(pressure_comp), 0.0);
+    std::fill(std::begin(pressure_v), std::end(pressure_v), 0.0);
+}
+
+/* Hydraulic functions */
+
+/* Weibull function for calculating conductance at a specific pressure */
 double Component::wb(const double &pressure) {
     return this->k_max * exp(-(pow((pressure / this->b_wb), this->c_wb)));
 }
 
+/* Integration */
 void Component::trapzd(const double &p1, const double &p2, double &s, const int &t, int &it) { //integrates root element z weibull
 
     double sum = 0, x = 0, del = 0;
@@ -185,7 +359,7 @@ void Component::calc_flow_rate(const double &p_inc, const double &k_min, bool vi
     }
 
     memset(e_ptr, 0, sizeof(*e_ptr) * CURVE_MAX);
-    memset(k_ptr, 0, sizeof(*k_ptr) * CURVE_MAX);
+    // memset(k_ptr, 0, sizeof(*k_ptr) * CURVE_MAX);
 
     double p1 = 0, p2 = 0, s = 0, e = 0;
     int i = 1;
@@ -257,7 +431,7 @@ int Component::calc_pressure(const double &e, const double &bottom_pressure, con
     //Loop Until es(j) > efinish
     ehigh = e_p[j];
     elow = e_p[j - 1];
-    double p2 = (((efinish - elow) / (ehigh - elow)) * p_inc) + (p_inc * (j - 1));
+    double p2 = ((efinish - elow) / (ehigh - elow)) * p_inc + p_inc * (j - 1);
     this->pressure = p2; // p2 is downstream component pressure at the provided transpiration rate, e
     if (this->pressure >= this->p_crit) {
         return 1;
