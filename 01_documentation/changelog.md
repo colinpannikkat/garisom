@@ -1,5 +1,15 @@
 # Changelog
-Changelog as of 11/09/24
+Changelog as of 02/05/25
+
+## 02/05/25 (3.0.3)
+* Finished porting over code
+  * Adding remainder of functions, including canopypressure, soilflow, soilevaporation, etc...
+  * Moved leaf and carbon functions and parameters into separate files
+  * Added historical curve storage and restoration
+* Fixed numerical instability in updatecurves when checking if the conductance in roots were less than the layer's minimum conductance
+* Added model data output (save to file)
+* Updated makefile
+* Added command line arguments for parameter and configuration files
 
 ## 11/09/24 (3.0.2)
 * Porting over code
