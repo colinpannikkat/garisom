@@ -1,18 +1,49 @@
 #ifndef CARBON_H
 #define CARBON_H
 
+#include "01Utilities.h"
+
 class CarbonAssimilationModel {
 
     private:
 
     public:
 
-        double lai,
-               laish,
-               laisl,
-               ca,
+        double ca,
                cinc,
-               atree;
+               cincsh,
+               atree,
+               qsl,
+               qsh,
+               psynmax,
+               psynmaxsh,
+               psynact,
+               psynactsh;
+
+        double gcanwmd,
+               gcanwshmd,
+               gcancmd,
+               gcancshmd,
+               cinmd,
+               cinshmd,
+               psynmaxmd,
+               psynmaxshmd,
+               gcmd,
+               gcmdsh;
+
+        double cin[CURVE_MAX],
+               cinsh[CURVE_MAX],
+               psyn[CURVE_MAX],
+               psynsh[CURVE_MAX],
+               psynmd[CURVE_MAX],
+               psynshmd[CURVE_MAX],
+               psync[CURVE_MAX],
+               gcanw[CURVE_MAX],
+               gcanc[CURVE_MAX],
+               gcanwsh[CURVE_MAX],
+               gcancsh[CURVE_MAX];
+
+        void clearParameters();
 
         /*
             Per Venturas et al. 2018.
@@ -53,9 +84,91 @@ class CarbonAssimilationModel {
                 - Canopy leaf area index: L_ai
             
         */
-    double &net_photosynthesis();
+        double &net_photosynthesis();
 
+        void assimilation(const int &p,
+                          const double &gmax,
+                          const double &qmax,
+                          const double &comp25,
+                          const double &thetac,
+                          const double &vmax25,
+                          const double &jmax25,
+                          const double &kc25,
+                          const double &ko25,
+                          const double &svvmax,
+                          const double &svjmax,
+                          const double &havmax,
+                          const double &hdvmax,
+                          const double &hdjmax,
+                          const double &hajmax,
+                          const double &lightcurv,
+                          const std::string &night,
+                          const double eplantl[],
+                          const double lavpd[],
+                          const double leaftemp[]);
+                          
+        void assimilationShade(const int &p,
+                               const double &gmax,
+                               const double &qmax,
+                               const double &comp25,
+                               const double &thetac,
+                               const double &vmax25,
+                               const double &jmax25,
+                               const double &kc25,
+                               const double &ko25,
+                               const double &svvmax,
+                               const double &svjmax,
+                               const double &havmax,
+                               const double &hdvmax,
+                               const double &hdjmax,
+                               const double &hajmax,
+                               const double &lightcurv,
+                               const std::string &night,
+                               const double eplantl[],
+                               const double lavpd[],
+                               const double leaftemp[]);
 
-};
+        void assimilationMd(const int &p,
+                                           const double &gmax,
+                                           const double &qmax,
+                                           const double &comp25,
+                                           const double &thetac,
+                                           const double &vmax25,
+                                           const double &jmax25,
+                                           const double &kc25,
+                                           const double &ko25,
+                                           const double &svvmax,
+                                           const double &svjmax,
+                                           const double &havmax,
+                                           const double &hdvmax,
+                                           const double &hdjmax,
+                                           const double &hajmax,
+                                           const double &lightcurv,
+                                           const std::string &night,
+                                           const double emd,
+                                           const double lavpdmd,
+                                           const double leaftmd);
+
+        void assimilationShadeMd(const int &p,
+                                const double &gmax,
+                                const double &qmax,
+                                const double &comp25,
+                                const double &thetac,
+                                const double &vmax25,
+                                const double &jmax25,
+                                const double &kc25,
+                                const double &ko25,
+                                const double &svvmax,
+                                const double &svjmax,
+                                const double &havmax,
+                                const double &hdvmax,
+                                const double &hdjmax,
+                                const double &hajmax,
+                                const double &lightcurv,
+                                const std::string &night,
+                                const double emd,
+                                const double lavpdshmd,
+                                const double leaftshmd);
+};;
 
 #endif
