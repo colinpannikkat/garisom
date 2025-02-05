@@ -130,8 +130,8 @@ int main(int argc, char *argv[])
 
         } while (!(plantModel->data.getColumnValue("julian-day", dd + 1) < 0.01)); // loop until the jd value on next row is zero -- it's an integer, but everything is stored in the array as double
 
-    plantModel->data.output("high-stress_test_output.csv");
-    plantModel->gs_data.output("high-stress_test_sum_output.csv");
+    plantModel->data.output("timesteps_output.csv");
+    plantModel->gs_data.output("sum_output.csv");
 
     delete plantModel;
 
