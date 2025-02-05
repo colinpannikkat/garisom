@@ -12,10 +12,7 @@
  * @param param_data Reference to a CSVData object where the parameter data will be stored.
  * @return true if the operation is successful.
  */
-bool locateRanges(CSVData<std::string> &config_data, CSVData<std::string> &param_data) {
-    // Set the parameter and nametable filenames
-    std::string config_file_name = CONFIG_FILE_PATH;
-    std::string param_file_name = PARAMETER_FILE_PATH;
+bool locateRanges(CSVData<std::string> &config_data, std::string config_file_name, CSVData<std::string> &param_data, std::string param_file_name) {
     
     // Reading model controls
     std::cout << std::endl;
@@ -42,11 +39,11 @@ bool locateRanges(CSVData<std::string> &config_data, CSVData<std::string> &param
  * @note If the file cannot be opened, an error message will be printed to the console.
  * @note If no file name is provided, a message indicating that the load is being skipped will be printed to the console.
  */
-void readGSSheet(CSVData<double> &gs_data, std::string &gs_file_name) {
+void readGSSheet(CSVData<double> &gs_data, std::string &gs_file_name, bool use_gs_data) {
 
-    gs_data.empty();
+    gs_data.clear();
 
-    if (gs_file_name != "") { // only if we actually selected a file, and we're using the GS data files in the first place
+    if (use_gs_data && gs_file_name != "") { // only if we actually selected a file, and we're using the GS data files in the first place
 
         std::cout << std::endl;
         std::cout << "Reading growing season limits." << std::endl;
