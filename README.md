@@ -18,17 +18,19 @@ The model uses a stomatal carbon gain vs. hydraulic risk optimization (Sperry et
 
 First, fork the repository to your own account. If you don't have a github account, just download the repository. Provide plant and site traits through the parameters file, then supply hourly weather data to drive model. The model will expect these files to be located in the current working directory. See the included examples and the details below for formatting and units. These example files contain all inputs necessary to test-run the model immediately after building.
 
-__a)__ To run, build and execute the model program (no command line arguments -- runs from files in the working directory). Building requires c++11, GNU example:
+__a)__ To run, build and execute the model program (no command line arguments -- runs from files in the working directory). Building requires C++17, GNU example:
 
 ```{}
 g++ -std=c++17
 ```
 
-The -O3 and -ffast-math optimizations are recommended with GNU compilers:
+The -O3 ~~and -ffast-math~~ optimizations are recommended with GNU compilers:
 
 ```{}
-g++ -std=c++17 -O3 -ffast-math
+g++ -std=c++17 -O3
 ```
+
+Using ffast-math does not guarantee reproducibility as this model uses a lot of floating point operations and is incredibly sensitive to numerical instabilities. See [here](https://stackoverflow.com/questions/7420665/what-does-gccs-ffast-math-actually-do) for more information. There is currently a header guard in `01Utilities.h` that prevents the use of it, but if you would like to compile with it, then feel free to comment that out.
 
 __b)__ To build and run from the terminal in a Linux/Mac OS system:
 
@@ -56,7 +58,7 @@ __b.4)__ Run this program from the same folder with this command:
 ./main [param_data_file] [config_data_file]
 ```
 
-The `param_data_file` and `config_data_file` are optional command line arguments. If not provided, the default file paths will be used which are defined in `Utilities.h`.
+The `param_data_file` and `config_data_file` are optional command line arguments. If not provided, the default file paths will be used which are defined in `01Utilities.h`.
 
 ```c++
 #define CONFIG_FILE_PATH "../03_test_data/configuration.csv"

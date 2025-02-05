@@ -1,6 +1,11 @@
 #ifndef UTILITIES_H
 #define UTILITIES_H
 
+/* Never let user compile with ffast-math */
+#ifdef __FAST_MATH__
+#error "-ffast-math is broken, don't use it"
+#endif
+
 #include <stdio.h>
 #include <cmath>    // math utility functions
 #include <string>   // the C++ String Class, easier to deal with than char arrays for this application
