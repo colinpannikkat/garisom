@@ -32,9 +32,12 @@ struct SoilLayer {
             length,
             swclimit,
             soilredist,
+            flow,
             predawn_pressure;
     bool    cavitated = 0;
+    bool    cavitated_t = 0;
     std::string  failure;
+    std::string  failure_t;
 };
 
 class XylemComponent {
@@ -46,7 +49,6 @@ class XylemComponent {
         
         LeafComponent leaf;
         StemComponent stem;
-        SoilLayer top_soil;
         std::vector<SoilLayer*> soils;
         int num_layers;
 
@@ -58,6 +60,8 @@ class XylemComponent {
         double rough,
                zdispl,
                zh;
+
+        void cleanParameters();
 
         /*
 
