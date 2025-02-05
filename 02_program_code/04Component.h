@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <cmath>    // math utility functions
 #include <string>   // the C++ String Class, easier to deal with than char arrays for this application
+#include <cstring>  // for memcpy
+#include <cstdint>
 #include <ctime>    // timers for performance testing
 #include <iterator>
 #include <iostream>
@@ -26,24 +28,27 @@ class Component {
     
     protected:
 
-        double  b_wb,           // b for weibull
-                c_wb,           // c for weibull
-                res_percent,    // percent resistances at ksat
-                res_wb,         // weibull resistance, 1/cond_wb
-                cond_wb,        // weibull conductance, 1/res_wb           
-                k_max,          // kmax, conductance per basal area
+        double  b_wb = 0,           // b for weibull
+                c_wb = 0,           // c for weibull
+                res_percent = 0,    // percent resistances at ksat
+                res_wb = 0,         // weibull resistance, 1/cond_wb
+                cond_wb = 0,        // weibull conductance, 1/res_wb           
+                k_max = 0,          // kmax, conductance per basal area
                                 // ksat used interchangably
-                p_crit,         // critical pressure, of VC
-                k_min,
-                pressure;       // downstream pressure used in composite calculations
+                p_crit = 0,         // critical pressure, of VC
+                k_min = 0,
+                pressure = 0;       // downstream pressure used in composite calculations
         std::vector<double> wb_fatigue;
         double e_p[CURVE_MAX] = {0};    // E(P) curve for component
         double e_pv[CURVE_MAX] = {0};   // Virgin E(P) curve
         double e_comp[CURVE_MAX] = {0};
+        double e_pt[CURVE_MAX] = {0};   // Historical curve
         double k[CURVE_MAX] = {0};      // K (conductivity) curve for component
         double k_v[CURVE_MAX] = {0};    // Virgin K (conductivity) curve for component
         double k_comp[CURVE_MAX] = {0}; // New(conductivity) curve for component based on other components
+        double k_t[CURVE_MAX] = {0};    // Historical curve
         double pressure_comp[CURVE_MAX] = {0};
+        double pressure_v[CURVE_MAX] = {0}; // virgin pressure curve
 
     public:
 
@@ -59,6 +64,7 @@ class Component {
         double getPressure();
         double& getFatigue(int index);
         double& getPressureComp(int index);
+        double& getPressureVirgin(int index);
         double& getEp(int index);
         double& getEpVirgin(int index);
         double& getEComp(int index);
@@ -78,12 +84,29 @@ class Component {
         void setPressure(double value);
         void setFatigue(int index, double value);
         void setPressureComp(int index, double value);
+        void setPressureVirgin(int index, double value);
         void setEp(int index, double value);
         void setEComp(int index, double value);
         void setEpVirgin(int index, double value);
         void setK(int index, double value);
         void setKVirgin(int index, double value);
         void setKComp(int index, double value);
+
+        /* Storage */
+        void storeTranspirationCurve();
+        void storeConductivityCurve();
+        void storeCurves();
+        void storeTranspirationCurveAndUseVirgin();
+        void storeConductivityCurveAndUseVirgin();
+        void storeCurvesAndUseVirgin();
+
+        void restoreTranspirationCurve();
+        void restoreConductivityCurve();
+        void restoreCurves();
+        void clearHistoricalCurves();
+
+        /* Clean parameters */
+        virtual void cleanParameters();
 
         /* 
 
@@ -129,13 +152,13 @@ class Component {
         void printCurveToFile(const double &p_inc, const std::string &filename) const {
             std::ofstream outFile(filename);
             if (!outFile) {
-            std::cerr << "Error opening file: " << filename << std::endl;
-            return;
+                std::cerr << "Error opening file: " << filename << std::endl;
+                return;
             }
 
             outFile << "p_inc,E(P)" << std::endl;
             for (int i = 0; p_inc * i <= this->p_crit; ++i) {
-            outFile << p_inc * i << "," << e_p[i] << std::endl;
+                outFile << p_inc * i << "," << e_p[i] << std::endl;
             }
 
             outFile.close();
