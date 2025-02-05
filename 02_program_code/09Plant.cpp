@@ -1231,7 +1231,7 @@ twentyMarker:
         } //End if//
 
         if (total > 500 || total < 400) { //if//
-            std::cout << "total > 500 or < 400" << std::endl;
+            // std::cout << "total > 500 or < 400" << std::endl;
             einc = ecritsystem / 450.0; //'re-set Einc
             param.setModelParam(einc, "e_inc");
             if (ecritsystem == 0)
