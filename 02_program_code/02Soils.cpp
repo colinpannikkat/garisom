@@ -180,4 +180,3 @@ void soils::get_vgparams(std::string &texture, long &layers, std::string (&soill
         soillayersTable[rowLR + k][colLR + 6] = thetasat;
     }
 }
-
