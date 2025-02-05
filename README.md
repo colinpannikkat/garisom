@@ -1,8 +1,8 @@
-# Carbon Gain vs Hydraulic Risk Stomatal Optimization Model V 2.0
+# Carbon Gain vs Hydraulic Risk Stomatal Optimization Model V 3.0
 
 __Coding language:__ C++
 
-__Authors:__ German Vargas G. & William R.L. Anderegg
+__Authors:__ Colin Pannikkat, German Vargas G. & William R.L. Anderegg
 
 __Contact:__ german.vargas@utah.edu
 
@@ -21,16 +21,16 @@ First, fork the repository to your own account. If you don't have a github accou
 __a)__ To run, build and execute the model program (no command line arguments -- runs from files in the working directory). Building requires c++11, GNU example:
 
 ```{}
-g++ -std=c++11
+g++ -std=c++17
 ```
 
 The -O3 and -ffast-math optimizations are recommended with GNU compilers:
 
 ```{}
-g++ -std=c++11 -O3 -ffast-math
+g++ -std=c++17 -O3 -ffast-math
 ```
 
-__b)__ To build and run from the terminal in a Mac OS system:
+__b)__ To build and run from the terminal in a Linux/Mac OS system:
 
 __b.1)__ Clone the repository in a desired location in your system.
 
@@ -41,7 +41,7 @@ git clone https://github.com/gevargu/garisom.git
 __b.2)__ Navigate to the repository by usin the command cd:
 
 ```
-cd garisom
+cd garisom/02_program_code
 ```
 
 __b.3)__ Run the following command will compile the code and build an executable:
@@ -53,15 +53,22 @@ make
 __b.4)__ Run this program from the same folder with this command:
 
 ```
-./garisom
+./main [param_data_file] [config_data_file]
+```
+
+The `param_data_file` and `config_data_file` are optional command line arguments. If not provided, the default file paths will be used which are defined in `Utilities.h`.
+
+```c++
+#define CONFIG_FILE_PATH "../03_test_data/configuration.csv"
+#define PARAMETER_FILE_PATH "../03_test_data/parameters.csv"
 ```
 
 __b.5)__ Press <kbd>Command</kbd> + <kbd>C</kbd> if you want to stop the model before it completes (<kbd>Ctrl</kbd> + <kbd>C</kbd> in Windows/Linux)
 
 This version has also been tested with Visual Studio 2017's compiler with similar optimizations (floating point mode fast, maximum optimization preferring speed). The following files (included in this repository) should be located in the working directory (normally the same directory as the executable) before running:
 	
-  - __parameters_2.0.0.csv__ (site, atmospheric, soils, stand, plant, hydraulics, and carbon assimilation parameters).
-  - __configuration_2.0.0.csv__ (model controls)
+  - __parameters.csv__ (site, atmospheric, soils, stand, plant, hydraulics, and carbon assimilation parameters).
+  - __configuration.csv__ (model controls)
   - __dataset.csv__ (hourly weather drivers).
   - __dataheader.csv__ (a header row for the hourly data output).
   - __sumheader.csv__ (a header row for the summary data output).
@@ -78,7 +85,7 @@ Upon completion, two output files are produced:
 
 __Model Parameters:__
 
-Configure plant traits and other parameters in __parameters_2.0.0.csv__ (expected input units are indicated). Coupled with the parameter build function in R to produce the __paramaters_2.0.0.csv__ file.
+Configure plant traits and other parameters in __parameters.csv__ (expected input units are indicated). Coupled with the parameter build function in R to produce the __paramaters.csv__ file.
 
 | Group    		| Parameter       	    	| Description										|
 | ---------------------	| ----------------------------- | -------------------------------------------------------------------------------------	|
