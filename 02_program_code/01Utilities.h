@@ -42,7 +42,7 @@
 
 // constants
 #define PROFT_MAX_RUN_MEAN 1        // running mean for profit maximization
-#define DPA_MAX_CUTOFF 1            // cutoff for stopping dpamax search
+#define DPA_MAX_CUTOFF 1.1            // cutoff for stopping dpamax search
 #define MIN_WIND_THRESH 0.4515      // m s-1'minimum wind threshold
 #define TRAP_ITER_MAX 70            // itmax for trapzd routine used for xylem only
 #define EPSX 0.0001                 // acceptable error for e integral for xylem
@@ -51,9 +51,9 @@
 #define SBC 0.0000000567            // Stefan-Boltzmann constant in W m-2 K-4
 #define SHA 29.3                    // Specific heat of air in J mol-1C-1
 #define GAS 8.3144598               // Universal gas constant J mol-1K-1
-#define OA 0.21                     // Mole fraction of O2
+#define OA 0.20999999999999999                     // Mole fraction of O2
 #define SOLAR 1362                  // Solar constant W m-2
-#define ABS_SOLAR 0.5                // Absorptivity of solar for leaves
+#define ABS_SOLAR 0.5               // Absorptivity of solar for leaves
 #define ABS_PAR 0.8                 // Absorptivity of PAR for leaves
 #define ABS_NIR 0.2                 // Absorptivity of near infrared for leaves
 #define MAX_YEARS 90
@@ -85,6 +85,7 @@ class CSVData {
         void readData(std::ifstream &dataFile);
 
         bool empty();
+        void clear();
         void print(size_t page_size);
         int row_size();
         int col_size();
@@ -339,6 +340,11 @@ inline bool CSVData<T>::empty() {
     return data.empty();
 }
 
+template<typename T>
+inline void CSVData<T>::clear() {
+    data.clear();
+}
+
 /**
  * @brief Prints the CSV data in a paginated format.
  *
@@ -486,7 +492,19 @@ inline void CSVData<T>::output(std::string out_file_name) {
     // Write data
     for (const auto& row : data) {
         for (const auto& cell : row) {
-            out_file << cell << ",";
+            if constexpr (std::is_same_v<T, double>) {
+                if (std::abs(cell) < std::pow(10, -FIO_PRECISION)) {
+                    out_file << 0 << ",";
+                } else {
+                    if (cell == static_cast<int>(cell)) {
+                        out_file << static_cast<int>(cell) << ",";
+                    } else {
+                        out_file << std::fixed << std::setprecision(FIO_PRECISION) << cell << ",";
+                    }
+                }
+            } else {
+                out_file << cell << ",";
+            }
         }
         out_file.seekp(-1, std::ios_base::cur); // Remove the last comma
         out_file << "\n";
@@ -544,7 +562,7 @@ T CSVData<T>::getColumnValue(const std::string &column_name, int row/*=0*/) {
         assert(col_index < data[row].size());
         return data[row][col_index];
     } else {
-        fprintf(stderr, "Column name %s does not exist, creating...\n", column_name.c_str());
+        // fprintf(stderr, "Column name %s does not exist, creating...\n", column_name.c_str());
         setColumnValue(T(), row, column_name);
     }
     return T();
@@ -725,14 +743,19 @@ inline bool CSVData<T>::setColumnValue(T value, int row, const std::string &colu
         }
     }
     int col_index = header[column_name];
+
+    // Resize!
+    if (row >= data.size()) {
+        data.resize(row + 1, std::vector<T>(num_cols, T()));
+    }
     data[row][col_index] = value;
     return true;
 }
 
 class Parameters; // moved header file include to .cpp, in future remove below functions as there is circular dependency
 
-bool locateRanges(CSVData<std::string> &config_data, CSVData<std::string> &param_data);
-void readGSSheet(CSVData<double> &gs_data, std::string &gs_file_name);
+bool locateRanges(CSVData<std::string> &config_data, std::string config_data_file, CSVData<std::string> &param_data, std::string param_data_file);
+void readGSSheet(CSVData<double> &gs_data, std::string &gs_file_name, bool use_gs_data);
 void readDataSheet(CSVData<double> &data, CSVData<double> &sum_data, std::string &data_file_name, std::string &header_file_name, std::string &sum_header_file_name);
 void readGrowSeasonData(Parameters &param, CSVData<double> &gs_data);
 void readSiteAreaValues();
