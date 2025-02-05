@@ -44,7 +44,6 @@ class Plant {
                     climate_forcing_data_path, 
                     data_header_file_path, 
                     sum_header_file_path,
-                    layer_failure[MAX_INPUT],
                     night;      // know whether is night
 
         int         species_no, 
@@ -55,10 +54,12 @@ class Plant {
                     layers,
                     tod;
 
-        bool        ground, 
+        bool        ground,
+                    oldground, 
                     soilred, 
                     sevap, 
-                    raining, 
+                    raining,
+                    oldraining, 
                     useGSData, 
                     mode_predawns, 
                     refilling, 
@@ -73,7 +74,8 @@ class Plant {
                     isNewYear,
                     gs_inGrowSeason,
                     gs_doneFirstDay, //done all first day of grow season calculations?
-                    rainEnabled;
+                    rainEnabled,
+                    oldrainEnabled;
 
         double      iter_gwInc,
                     iter_gwStart,
@@ -88,13 +90,23 @@ class Plant {
                     iter_bagaCutoff,
                     max_plc_x,
                     gwflow,             // Used like twice, needed for soilwetness and deepflow
-                    soilevap,           // set in soilevaporation(), used in soilwetness, maybe just declare local in modelTimeStepIter and pass?
+                    drainage,           // used in deepflow
+                    runoff,
+                    soilevap,           // set in soilevaporation(), used in soilwetness and soilevaporation, maybe just declare local in modelTimeStepIter and pass?
                     iter_refK,          // used in getsoilwetness, never initialized though?
+                    kpday1,
+                    kxday1,             // this and above used in getsoilwetness
                     transpiration_tree, // used in multiple functions, need to preserve old value
+                    transpiration, 
+                    transpirationsh, 
+                    md, 
+                    mdsh,                // need to preserve this and three above so during night we still retain values
+                    rmean,
                     // waterold,        // read from previous dd
                     b_fatigue[3][10],   // [0, :] is roots, [1, :] is stem, [2, :] is leaves
                     ecritsystem,
                     pcritsystem,
+                    kmin,               // k-min for the plant
                     e_p[CURVE_MAX] = {0};    // whole plant transpiration curve, likely not needed now since only one xylem is typically used
 
         long        gs_yearIndex,       // this is a counter from 0 (for the first year) indicating how many years have passed
@@ -241,12 +253,29 @@ class Plant {
                        double &qsl,
                        double &qsh,
                        double &ssun,
+                       double &sshade,
                        double &sref,
                        double &la,
                        double &lg);
         int getpredawns(const int &dd);
         int newtonrhapson(const int &dd, const double &p_inc, const double &e);
-        int compositeCurve(const double &e, const int &p);
+        int compositeCurve(const double &e, const int &p, int &total);
+        void canopypressure(const int &dd,
+                           const int &total,
+                           double &transpiration,
+                           double &transpirationsh,
+                           double &md,
+                           double &mdsh);
+        void updatecurves(const int &halt);
+        void soilflow();
+        void deepflow(const double &timestep);
+        void soilevaporation(const double &soiltemp,
+                             const double &maxvpd,
+                             const double &vpd,
+                             const double &airtemp,
+                             const double &us);
+        void storehistory();
+        void gethistory();
 };
 
 #endif
