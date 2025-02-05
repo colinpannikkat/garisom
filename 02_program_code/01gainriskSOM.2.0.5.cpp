@@ -78,8 +78,8 @@
 /* MACROS */
 
 // input file names
-#define CONFIG_FILE_PATH "../03_test_data/configuration_2.0.0.csv"
-#define PARAMETER_FILE_PATH "../03_test_data/parameters_2.0.0.csv"
+#define CONFIG_FILE_PATH "../03_test_data/old_configuration_2.0.0.csv"
+#define PARAMETER_FILE_PATH "../03_test_data/old_parameters_2.0.0.csv"
 
 // output precision
 #define FIO_PRECISION 12
@@ -111,7 +111,7 @@ double dummyDouble = 0.0;
 std::string paramCells_2[PARAMFILE_MAXROWS][PARAMFILE_MAXCOLS];// new parameter data
 double dataCells[DATAFILE_MAXROWS][DATAFILE_MAXCOLS]; // up to 2000k rows and 100 columns of input data
 double finalOutCells[MAX_SUMMARY_ROWS][MAX_SUMMARY_COLS];
-long GSCells[101][11]; // contains the growing season start/end days
+double GSCells[101][11]; // contains the growing season start/end days
                        // a much simpler class for the full C++ version which just wraps access to the dataSet[][] array in the dsheet.Cells command
                        // exists to preserve the code legacy of the model, which is written in VBA for Excel
 std::string configCells[CONFIGFILE_MAXROWS][CONFIGFILE_MAXCOLS];
@@ -293,6 +293,19 @@ std::string getValueFromConfig(std::string name)// function to find cells in con
     return 0;
 }
 
+void printCurveToFile(std::string filename, double pinc, double pcrit, double arr[CURVE_MAX]) {
+    std::ofstream outFile(filename);
+    if (outFile) {
+        outFile << "p_inc,E(P)" << std::endl;
+        for (int i = 0; pinc * i <= pcrit; ++i) {
+            outFile << pinc * i << "," << arr[i] << std::endl;
+        }
+        outFile.close();
+        return;
+    }
+
+    std::cerr << "Error opening file: " << filename << std::endl;
+}
 
 class ModelProgram
 {
@@ -474,12 +487,12 @@ public:
 
     long dColYear, dColDay, dColTime, dColSolar, dColWind, dColRain, dColTAir, dColTSoil, dColD;
     //Data column positions - NOTE THAT THEY ARE OFFSET FROM colD, the starting data column (to avoid wasting io array space)
-    long dColF_p1, dColF_p2, dColF_p3, dColF_p4, dColF_p5, dColF_predawn, dColF_P, dColF_E, dColF_Gw, dColF_laVPD, dColF_leaftemp, dColF_ANet,
+    long dColF_p0, dColF_p1, dColF_p2, dColF_p3, dColF_p4, dColF_p5, dColF_predawn, dColF_P, dColF_E, dColF_Gw, dColF_laVPD, dColF_leaftemp, dColF_ANet,
     dColF_s1m2, dColF_ci, dColF_PPFD, dColF_S_P, dColF_S_E, dColF_S_Gw, dColF_S_laVPD, dColF_S_leaftemp,
     dColF_S_Anet, dColF_S_s1m2, dColF_S_ci, dColF_S_PPFD;
 
     long dColF_T_E, dColF_T_ANet, dColF_T_s1m2,
-    dColF_T_pcrit, dColF_T_Ecrit, dColF_CP_Pstem, dColF_CP_Proot, dColF_CP_kstem, dColF_CP_kleaf, dColF_CP_kplant,
+    dColF_T_pcrit, dColF_T_Ecrit, dColF_CP_Pleaf, dColF_CP_Pstem, dColF_CP_Proot, dColF_CP_kstem, dColF_CP_kleaf, dColF_CP_kplant,
     dColF_CP_kxylem, dColF_CP_kroot1, dColF_CP_kroot2, dColF_CP_kroot3, dColF_CP_kroot4, dColF_CP_kroot5, dColF_CP_krootAll,
     dColF_CP_Eroot1, dColF_CP_Eroot2, dColF_CP_Eroot3, dColF_CP_Eroot4, dColF_CP_Eroot5, dColF_CP_Empty1, dColF_CP_Empty2,
     dColF_End_watercontent, dColF_End_waterchange, dColF_End_rain, dColF_End_gwater, dColF_End_E, dColF_End_drainage,
@@ -662,7 +675,8 @@ public:
         dColTAir = dColWind + 1;
         dColTSoil = dColTAir + 1;
         dColD = dColTSoil + 1;
-        dColF_p1 = dColD + 1;
+        dColF_p0 = dColD + 1;
+        dColF_p1 = dColF_p0 + 1;
         dColF_p2 = dColF_p1 + 1;
         dColF_p3 = dColF_p2 + 1;
         dColF_p4 = dColF_p3 + 1;
@@ -691,7 +705,8 @@ public:
         dColF_T_s1m2 = dColF_T_ANet + 1;
         dColF_T_pcrit = dColF_T_s1m2 + 1;
         dColF_T_Ecrit = dColF_T_pcrit + 1;
-        dColF_CP_Pstem = dColF_T_Ecrit + 1;
+        dColF_CP_Pleaf = dColF_T_Ecrit + 1;
+        dColF_CP_Pstem = dColF_CP_Pleaf + 1;
         dColF_CP_Proot = dColF_CP_Pstem + 1;
         dColF_CP_kstem = dColF_CP_Proot + 1;
         dColF_CP_kleaf = dColF_CP_kstem + 1;
@@ -814,9 +829,11 @@ public:
 
                 for (int rC = 0; rC < row.size(); rC++)
                 {
-                    if (rowCount < 100 && rowCount >= 0 && rC < 10 && rC >= 0)
-                        GSCells[rowCount + 1][rC + 1] = std::atol(row[rC].c_str()); // load array as double
+                    if (rowCount < 100 && rowCount >= 0 && rC < 10 && rC >= 0) {
+                        std::cout << std::atof(row[rC].c_str()) << std::endl;
+                        GSCells[rowCount + 1][rC + 1] = std::atof(row[rC].c_str()); // load array as double
                                                                                     // all data i/o is in double
+                    }
                 }
                 }
                 //std::cout << "4th Element(" << row[3] << ")\n";
@@ -947,12 +964,12 @@ public:
         // Are we working with multiple species? Values: y; n
         if (getValueFromConfig("i_multipleSP") == "y")
         {
-            std::cout << "On" << endl;
+            std::cout << "On" << std::endl;
             species_no_string = getValueFromConfig("i_speciesN");// for some reason the function can't read numbers
             species_no = std::atol(species_no_string.c_str());
             std::cout << "MODE: Setting species number to: " << species_no << std::endl; 
         } else {
-            std::cout << "Off" << endl;
+            std::cout << "Off" << std::endl;
             species_no = 1; // default
             std::cout << "MODE: Setting species number to: " << species_no << std::endl;
         }
@@ -964,27 +981,27 @@ public:
         // turns on/off groundwater flow. Values: on: y; off: n
         ground = getValueFromConfig("i_gWaterEnable");
         if (ground == "y"){
-            std::cout << "On" << endl;
+            std::cout << "On" << std::endl;
         } else {
-            std::cout << "Off" << endl;
+            std::cout << "Off" << std::endl;
         }
 
         std::cout << "     Soil water redistribution: "; //i_soilRedEnable
         // turns on/off soil redistribution routine. Values: on: y; off: n
         soilred = getValueFromConfig("i_soilRedEnable");
         if(soilred == "y"){
-            std::cout << "On" << endl;
+            std::cout << "On" << std::endl;
         } else {
-            std::cout << "Off" << endl;
+            std::cout << "Off" << std::endl;
         }
 
         std::cout << "        Soil water evaporation: "; //i_soilEvapEnable
         // turns on/off soil evaporation routine. Values: on: y; off: n
         sevap = getValueFromConfig("i_soilEvapEnable");
         if(sevap == "y"){
-            std::cout << "On" << endl;
+            std::cout << "On" << std::endl;
         } else {
-            std::cout << "Off" << endl;
+            std::cout << "Off" << std::endl;
         }
 
         // // Climate
@@ -1060,20 +1077,20 @@ public:
         // turns on/off xylem hysteresis from previous growing season. Values: n(off); y(on) 
         if(getValueFromConfig("i_cavitFatigue") == "y"){// "i_cavitFatigue"
             hysteresis = true;
-            std::cout << "On" << endl;
+            std::cout << "On" << std::endl;
         } else {
             hysteresis = false;// default
-            std::cout << "Off" << endl;
+            std::cout << "Off" << std::endl;
         }
 
         std::cout << "   Cavitation fatigue in roots: ";
         if (getValueFromConfig("i_stemOnly") == "n")
         {
             stem_only = false;
-            std::cout << "On" << endl;
+            std::cout << "On" << std::endl;
         } else {
             stem_only = true; // Default
-            std::cout << "Off" << endl;
+            std::cout << "Off" << std::endl;
         }
 
         // BA:GA optimization routine
@@ -1541,7 +1558,6 @@ public:
             soillayersTable[rowLR + k][colLR + 2] = std::to_string(100.0 * (ksatr[k] / ksatroot)); // % root saturated k
             soillayersTable[rowLR + k][colLR + 9] = std::to_string(ksatr[k]); // root kmax
         }
-
         rough = 0.01; //soil Zm, eqn 14.9, using table 5.1 for smooth surface, cm
         zdispl = 6.5 * rough; // soil d, eqn 14.9, using d = 6.5 Zm, eq 5.2,5.3
         zh = 0.2 * rough; // roughness for temperature
@@ -1748,7 +1764,7 @@ public:
         kminstem = 0;
         md = 0;
         ecritsystem = 0;
-        pcritsystem;
+        pcritsystem = 0;
         phigh = 0;
         failspot = "";
         setting = "";
@@ -2198,7 +2214,7 @@ public:
     }
 
     /* Extract CO2 from growing season data*/
-    double getCarbonByYear(long &yearNum, long (&GSCells)[101][11],const long &maxYears) 
+    double getCarbonByYear(long &yearNum, double (&GSCells)[101][11],const long &maxYears) 
     {
         long startRow = 2; // skipping the header
         double ca_year;
@@ -2645,6 +2661,7 @@ public:
                 } //End if//
             }
             else { //'layer//'s disconnected
+                std::cout << z << " is disconnected." << std::endl;
                 pd[z] = pcritr[z];
                 prh[z] = pcritr[z];
             } //End if//
@@ -2669,9 +2686,9 @@ public:
         else {
             failure = 1;
         } //End if//
-        for (z = 1; z <= layers; z++)//z = 1 To layers
+        for (z = 0; z <= layers; z++)//z = 1 To layers
         {
-            dSheet.Cells(rowD + dd, colD + dColF_p1 - 1 + o + z) = pd[z]; //'soil pressures by layer (only for rooted layers)
+            dSheet.Cells(rowD + dd, colD + dColF_p0 + o + z) = pd[z]; //'soil pressures by layer (only for rooted layers)
         } //for//z
             //'Cells(16 + dd, 65) = pd(0) //'water potential of top layer
     }
@@ -3240,7 +3257,8 @@ public:
         {
             if (true)
             {
-                if (kroot[z][halt] < kminroot[z])
+                // if (kroot[z][halt] < kminroot[z])
+                if ((kminroot[z] - kroot[z][halt]) > 1e-9)
                 {
                 kminroot[z] = kroot[z][halt];
                 phigh = int(proot[halt] / pinc) + 1; //'pressure datum just above the target
@@ -3303,8 +3321,9 @@ public:
                 p2 = pr;
                 rootflow();
                 elayer[z][p] = flow; //'flow through layer
-                if (flow != 0)
+                if (flow != 0) {
                 kroot[z][p] = std::abs(elayer[z][p] / (pr - prhizo[z][p]));
+                }
                 if (flow == 0) { //if//
                 if (refilling == "y") { //if// //'for refilling, starting point is always weibull
                     x = pd[z];
@@ -3693,7 +3712,7 @@ public:
             layerfailure[z] = tlayerfailure[z];
         }
     }
-
+ 
     void canopypressure()
     {
         //computes carbon-based middays; pressures and cost curve from virgin supply function, gas exchange from historical values
@@ -3763,8 +3782,9 @@ public:
             {
                 if ((pl - plold) == 0)
                 break; //gone to failure
-                if (p == 1)
+                if (p == 1) {
                 dedplzero = einc / (pl - plold); //note: pl is returned by "leaf" routine
+                }
                 dedpl = einc / (pl - plold);
                 if (dedpl < dedplmin)
                 dedplmin = dedpl; //insure that kloss only goes up
@@ -3810,7 +3830,7 @@ public:
         dpmax = 0;
         dpamax = -100;
         amaxmax = 0; //insures the gain function is monotonic
-
+        rmean = 0.0;
         dpamin = 0.0; // keep track of low values to avoid extreme negative profit curves producing a result
         do
         {
@@ -3851,7 +3871,6 @@ public:
                 dpamax = rmean;
                 md = pleafv[p]; //midday pressure for sun layer from virgin curves
             }
-            //print out gain and cost
 
         } while (!(einc * p >= gmax * lavpd[p] || total == 0 || (rmean < dpamax / cutoff && p > runmean && p > 15) || klossv[p] > 0.9 || p >= totalv));
 
@@ -4756,7 +4775,10 @@ public:
         }
         
         if ( dd == 1 || isNewYear){// Get CO2 for current year
-            ca = getCarbonByYear(yearVal,GSCells,maxYears); // get current year atmospheric CO2
+            if (useGSData)
+                ca = getCarbonByYear(yearVal,GSCells,maxYears); // get current year atmospheric CO2
+            else
+                ca = getValueFromParDbl("i_co2AmbPPM",species_no);
             std::cout << "Atmospheric CO2 concentration for " << yearVal << ": " << ca << std::endl;
             ca = ca * 0.000001;
             gs_ar_bs[gs_yearIndex] = bs;// save b value
@@ -4789,7 +4811,6 @@ public:
 
         gs_inGrowSeason = isInGrowSeasonSimple(); // just always call this!
                                                     //[/HNT]
-
         tod = dSheet.Cells(rowD + dd, colD + dColTime); //'time of day, standard local time in hour fraction
         obssolar = dSheet.Cells(rowD + dd, colD + dColSolar); //'observed total solar, horizontal, wm-2
         vpd = dSheet.Cells(rowD + dd, colD + dColD); //'midday vpd in kPa
@@ -4826,7 +4847,6 @@ public:
     twentyMarker:
 
         getpredawns(); //'passed initializing...update soil pressure of each layer
-
         if (failure == 1)
             return -1;//break;//Exit do
 
@@ -4838,6 +4858,7 @@ public:
         psynmax = -100;
         psynmaxsh = -100;
         skip = 0; //'this turns off psynthesis
+        // ksatl, pcritl
 
         do //'this loop obtains and stores the entire composite curve
         {
@@ -4860,8 +4881,9 @@ public:
             } //End if//
             stem(); //'gets stem and leaf pressures
             leaf();
-            if (test == 1)
+            if (test == 1) {
                 break;//Exit do
+            }
             compositecurve(); //'stores the entire composite curve
                             //'if skip = 0 { //if//
             leaftemps(); //'gets sun layer leaf temperature from energy balance
@@ -4900,6 +4922,7 @@ public:
             } //End if//
 
             if (total > 500 || total < 400) { //if//
+                std::cout << "total > 500 or < 400" << std::endl;
                 einc = ecritsystem / 450.0; //'re-set Einc
                 if (ecritsystem == 0)
                 {
@@ -4909,6 +4932,7 @@ public:
                 testCount++; // [DEBUG]
                 if (testCount > 10)
                 {
+                    std::cout << "test count > 10" << std::endl;
                 testCount = 0;
                 goto fortyMarker;
                 }
@@ -5009,6 +5033,7 @@ public:
             //'HYDRAULIC OUTPUT (BASED ON SUN MD)
             dSheet.Cells(rowD + dd, colD + o + dColF_T_pcrit) = pcritsystem;
             dSheet.Cells(rowD + dd, colD + o + dColF_T_Ecrit) = ecritsystem * (1 / laperba) * (1.0 / 3600.0) * 55.4 * 1000; //'ecrit in mmol s-1m-2
+            dSheet.Cells(rowD + dd, colD + o + dColF_CP_Pleaf) = pleaf[halt];
             dSheet.Cells(rowD + dd, colD + o + dColF_CP_Pstem) = pstem[halt];
             dSheet.Cells(rowD + dd, colD + o + dColF_CP_Proot) = proot[halt];
             dSheet.Cells(rowD + dd, colD + o + dColF_CP_kstem) = kstem[halt]; //'k stem at midday in kg hr-1m-2MPa-1
@@ -5087,15 +5112,12 @@ public:
 
         if (isNewYear)
             isNewYear = false; // always set this
-
         return -1;
 
     }
 
     void modelProgramNewYear()
     {   
-        std::cout << std::endl;
-        std::cout << "Starting new year" << std::endl;
         // save the iterate-able water system states
         std::string oldGround;
         std::string oldRaining;
@@ -5396,7 +5418,7 @@ public:
         saveOutputSheet("./" + stageNames[stage_ID] + "_OUTPUT_timesteps", "timesteps");
         saveOutputSheet("./" + stageNames[stage_ID] + "_OUTPUT_summary", "summary");
 
-        return 1;
+        return 0;
     }
 };
 
