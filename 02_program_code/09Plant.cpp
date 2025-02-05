@@ -977,11 +977,6 @@ int Plant::modelTimestepIter(int &dd) {
     double laperba = param.getModelParam("leaf_per_basal");
     xylem.leaf.emiss = param.getModelParam("emiss");
 
-    printf("dd: %d, P-MD %lf\n", dd, md);
-
-    if (dd == 13201)
-        true;
-
     if (dd == 1 || isNewYear)
     {
         failure = 0;//'=1 for system failure at midday...terminates run
@@ -1084,7 +1079,6 @@ int Plant::modelTimestepIter(int &dd) {
 
     gs_inGrowSeason = isInGrowSeasonSimple(jd); // just always call this!
                                                 //[/HNT]
-    std::cout << "IN GROW SEASON" << gs_inGrowSeason << std::endl;
     lightcomp = param.getModelParam("light_comp");
     tod = data.getColumnValue("standard-time", dd); //'time of day, standard local time in hour fraction
     obssolar = data.getColumnValue("solar", dd); //'observed total solar, horizontal, wm-2
@@ -1159,13 +1153,9 @@ twentyMarker:
             failspot = "below ground";
             break;
         }
-        // std::cout << "rp " << xylem.soils[1]->root.getPressure() << std::endl;
         test = xylem.stem.calc_pressure(e, xylem.soils[1]->root.getPressure(), param.getModelParam("p_grav"), param.getModelParam("p_inc")); //'gets stem and leaf pressures
-        // std::cout << "sp " << xylem.stem.getPressure() << std::endl;
         test = xylem.leaf.calc_pressure(e, xylem.stem.getPressure(), 0, param.getModelParam("p_inc")); // apparently gravity doesn't affect leaves downstream pressure??
-        // std::cout << "lp " << xylem.leaf.getPressure() << std::endl;
         if (test == 1) {
-            // std::cout << "HAVING TO BREAK" << std::endl;
             break;
         }
         test = compositeCurve(e, p, total); //'stores the entire composite curve for every P_c = p
@@ -1270,22 +1260,12 @@ fortyMarker:
 
     if (night == "n" && carbon.psynmax > 0 && carbon.psynmaxsh > 0 && reset_guess == 0) { //if//
                                                                         //DoEvents //'[HNT] this was required to prevent a hard lock -- this portion of the loop is the most intensive, so let Excel take a "breath" by processing system events to prevent lockup
-        std::cout << night << " " << carbon.psynmax << " " << carbon.psynmaxsh << " " << reset_guess << std::endl;
         canopypressure(dd, total, transpiration, transpirationsh, md, mdsh); //'returns canopy P and associated output
                           // 'if check >= 2000 { //if// GoTo 60:
         if (refilling == false)
             updatecurves(halt); //'updates element E(P) curves as required for midday exposure for no refilling
     } //End if// //'night <> "n", psynmax IF
 
-    // if (dd == 13202) {
-    //     xylem.soils[0]->root.printCurveToFile(param.getModelParam("p_inc"), "new_root_ep_0.csv");
-    //     xylem.soils[1]->root.printCurveToFile(param.getModelParam("p_inc"), "new_root_ep_1.csv");
-    //     xylem.soils[2]->root.printCurveToFile(param.getModelParam("p_inc"), "new_root_ep_2.csv");
-    //     xylem.soils[3]->root.printCurveToFile(param.getModelParam("p_inc"), "new_root_ep_3.csv");
-    //     xylem.soils[4]->root.printCurveToFile(param.getModelParam("p_inc"), "new_root_ep_4.csv");
-    //     xylem.soils[5]->root.printCurveToFile(param.getModelParam("p_inc"), "new_root_ep_5.csv");
-    //     exit(1);
-    // }
     if (soilred == true) { //if//
         soilflow(); //'gets vertical soil flow between layers in m3/m2
     }
@@ -1387,13 +1367,11 @@ fortyMarker:
             std::ostringstream oss;
             oss << "K-root-" << z;
             data.setColumnValue(xylem.soils[z]->root.getKComp(halt), dd, oss.str()); //'root k at midday, sun fluxes
-            // std::cout << "K-root-" << z << " " << xylem.soils[z]->root.getKComp(halt) << std::endl;
             sum = sum + xylem.soils[z]->root.getKComp(halt);
         } //end for z
         data.setColumnValue(sum, dd, "K-root-all"); //'total root k at midday
         if (failure == 0) { //if//
             double tempDouble = 0.0;
-            std::cout << "dd: " << dd << " tod: " << tod << " k-x: " << xylem.leaf.getKmin() << " k-s: " << xylem.stem.getKmin() << " k-r: " << data.getColumnValue("K-root-all", dd) << std::endl;
             tempDouble = 1 / (1 / xylem.leaf.getKmin() + 1 / xylem.stem.getKmin() + 1 / data.getColumnValue("K-root-all", dd)); //'total xylem k
             data.setColumnValue(tempDouble, dd, "K-xylem"); //1 / (1 / kminleaf + 1 / kminstem + 1 / dSheet.Cells(rowD + dd, colD + k + 1 + layers)); //'total xylem k
             if (tempDouble < gs_data.getColumnValue("K-xylem", gs_yearIndex) || gs_data.getColumnValue("K-xylem", gs_yearIndex) == 0)
@@ -1451,8 +1429,7 @@ fortyMarker:
 
     if (isNewYear)
         isNewYear = false; // always set this
-    // if (dd > 3723)
-    //     printf("bum");// exit(1);
+
     return 0;
 }
 
@@ -1603,7 +1580,6 @@ void Plant::getsoilwetness(const int &dd,
                 water[z] = param.getModelParam("ffc") * water[z]; //'start off with initial fraction of field capacity
                                             //'Cells(16 + dd, 42 + z) = water[z]
                 waterold = waterold + water[z]; //'in m3/m2 ground area
-                // std::cout << water[z] << std::endl;
             } //for//z
                                                            
             data.setColumnValue(waterold * 1000, dd, "water-content");  //'root zone water content in mm m-2 ground area
@@ -1617,7 +1593,6 @@ void Plant::getsoilwetness(const int &dd,
 
         // store the initial water content to check how much we consume at the end
         gs_data.setColumnValue(waterold * 1000, gs_yearIndex, "initial");
-        // std::cout << "waterold: "  << waterold << std::endl;
         // [/HNT]
     } //End if// //'dd=1 if
         //'if pet = "y" Or pet = "n" { //if// //'do the original routine...doesn//'t run for PET scenario
@@ -1636,7 +1611,6 @@ void Plant::getsoilwetness(const int &dd,
         } //for//z
         //'now do the bottom layer and potential groundwater input
         if (night == "n") { //if// //'it//'s day, must adjust layerflow for sun vs. shade weighting
-            std::cout << "halt: " << halt << " haltsh: " << haltsh << " ecomp: " << xylem.soils[layers]->root.getEComp(halt) << " ecompsh: " << xylem.soils[layers]->root.getEComp(haltsh) << std::endl;
             layerflow = xylem.soils[layers]->root.getEComp(halt) * laisl / lai + xylem.soils[layers]->root.getEComp(haltsh) * laish / lai; //'weighted flow
         }
         else {
@@ -1645,7 +1619,6 @@ void Plant::getsoilwetness(const int &dd,
         layerflow = layerflow * param.getModelParam("ba_per_ga") * 1 / 998.2 * timestep; //'rootflow into (= negative rootflow) or out (positive flow) of layer in m3/m2 ground area
         layerflow = layerflow + xylem.soils[layers]->soilredist * 1 / 998.2 * timestep; //'redistribution between layers (negative is inflow, positive is outflow)
                                                                             //'water(layers) = water(layers) - layerflow //'subtracts rootflow from layer on per ground area basis
-        std::cout << "night: " << night << " layerflow: " << layerflow << " sredist: " << xylem.soils[layers]->soilredist <<  " laisl:" << laisl << " laish:" << laish <<  " lai:" << lai << std::endl;
         if (layerflow < 0) { //if// //'water is added
             for (int z = layers; z >= 0; z--)//z = layers To 0 Step -1 //'start at bottom, go up
             {
@@ -1748,7 +1721,6 @@ void Plant::getsoilwetness(const int &dd,
                     else { //'deficit<0...layer//'s saturated
                         rain = rain - deficit; //'increase rain by super-saturated amount (deficit is negative)
                         water[j] = xylem.soils[j]->rhizosphere.getThetaSat() * xylem.soils[j]->depth; //'reset to saturation
-                        // std::cout << "water-" << j << " : " << water[j] << std::endl; 
                     } //End if// //'deficit <>0 if
                 } //for//j
 
@@ -1878,7 +1850,6 @@ void Plant::getsoilwetness(const int &dd,
             gs_data.setColumnValue(gs_data.getColumnValue("PLC-85", gs_yearIndex) + 1, gs_yearIndex, "PLC-85");
 
         tempDouble = 100 * (1 - data.getColumnValue("K-xylem", dd - 1) / kxday1);
-        // std::cout << tempDouble << " " << data.getColumnValue("K-xylem", dd - 1) << " " << kxday1 << std::endl;
         data.setColumnValue(tempDouble, dd, "end-PLC-xylem"); //'100 * (1 - dSheet.Cells(rowD - 1 + dd, colD + dColF_CP_kxylem) / kxday1) 'plc xylem...prior timestep
         if (tempDouble > gs_data.getColumnValue("PLC-x", gs_yearIndex))
             gs_data.setColumnValue(tempDouble, gs_yearIndex, "PLC-x");
@@ -1938,29 +1909,14 @@ int Plant::getpredawns(const int &dd) // gets soil predawn water potential for e
     int    t = 0,
            failure = 0;
 
-    // for (int z = 0; z <= layers; z++) {
-    //     double theta = water[z] / xylem.soils[z]->depth;
-    //     double thetasat = xylem.soils[z]->rhizosphere.getThetaSat();
-    //     double depth = xylem.soils[z]->depth;
-    //     double water_content = water[z];
-
-    //     std::cout << "Layer " << z << ": "
-    //               << "Theta = " << theta << ", "
-    //               << "ThetaSat = " << thetasat << ", "
-    //               << "Depth = " << depth << ", "
-    //               << "Water Content = " << water_content << std::endl;
-    // }
-
     //'first check for layer participation...only rooted layers, not layer 0
     for (int k = 1; k <= layers; k++)//k = 1 To layers //'assign source pressures, set layer participation
     {
         if (xylem.soils[k]->failure == "root") { //if//
             if (xylem.soils[k]->root.getKmin() == 0) {
-                // std::cout << "Root kmin == 0" << std::endl;
                 xylem.soils[k]->cavitated = true; //'gone from scene if roots cavitated at midday
             }
             if (xylem.soils[k]->root.getKmin() != 0) { //if// //'roots still around
-                // std::cout << "Root kmin != 0" << std::endl;
                 xylem.soils[k]->failure = "ok";
                 xylem.soils[k]->cavitated = false;
             } //End if//
@@ -1984,12 +1940,10 @@ int Plant::getpredawns(const int &dd) // gets soil predawn water potential for e
             //end predawns mode changes
             xylem.soils[z]->rhizosphere.setPressure(xylem.soils[z]->predawn_pressure);
             if (xylem.soils[z]->predawn_pressure >= xylem.soils[z]->rhizosphere.getPcrit() && z > 0) { //if// //'only rooted layers // [HNT] >= instead of > for consistency w/ Newton Rhapson update
-                // std::cout << "soil cavitated" << std::endl;
                 xylem.soils[z]->cavitated = true;
                 xylem.soils[z]->failure = "rhizosphere";
             } //End if//
             if (xylem.soils[z]->predawn_pressure >= xylem.soils[z]->root.getPcrit() && z > 0) { //if// //'only rooted layers // [HNT] >= instead of > for consistency w/ Newton Rhapson update
-                // std::cout << "roots cavitated" << std::endl;
                 xylem.soils[z]->cavitated = true;
                 xylem.soils[z]->failure = "root";
                 xylem.soils[z]->root.setKmin(0);
@@ -2009,7 +1963,6 @@ int Plant::getpredawns(const int &dd) // gets soil predawn water potential for e
     {  
         if (xylem.soils[k]->cavitated == false) { //if//
             sum = sum + xylem.soils[k]->predawn_pressure;
-            // std::cout << "pd-" << k << ": " << xylem.soils[k]->predawn_pressure << std::endl;
         }
         else { //'predawn is not seen by the roots
             t = t + 1;
@@ -2195,7 +2148,6 @@ int Plant::newtonrhapson(const int &dd, const double &p_inc, const double &e) //
             double rFloat = (double)rand() / (double)RAND_MAX;
             int k = int((layers - 1 + 1) * rFloat + 1); // old rand in line with garisom 2.0.5
             pr = xylem.soils[k]->predawn_pressure; //random choice of pd
-            std::cout << k << " " << pr << std::endl;
             xylem.soils[1]->root.setPressure(pr);
 
             if (false) // can enable this is running into erroneous solutions -- but allowing these to vary instead of resetting results in more frequent solutions in my experience
@@ -2421,13 +2373,11 @@ int Plant::compositeCurve(const double &e, const int &p, int &total) //'stores c
             xylem.soils[z]->root.calc_through_flow(p1, p2, param.getModelParam("p_inc"), flow, klower, kupper);
             xylem.soils[z]->root.setEComp(p, flow); // flow through layer
             if (flow != 0) {
-                std::cout << "z: "<< z << " p: " << p << " ecomp[p]: " << xylem.soils[z]->root.getEComp(p) << " pr: " << xylem.soils[1]->root.getPressure() << " rhcomp: " << xylem.soils[z]->rhizosphere.getPressureComp(p) << std::endl;
                 xylem.soils[z]->root.setKComp(p, std::abs(xylem.soils[z]->root.getEComp(p) / (xylem.soils[1]->root.getPressure() - xylem.soils[z]->rhizosphere.getPressureComp(p))));
             }
             if (flow == 0) { //if//
                 if (refilling == true) { //if// //'for refilling, starting point is always weibull
                     x = xylem.soils[z]->predawn_pressure;
-                    std::cout << "z: "<< z << " pd[z]: " << x << std::endl;
                     xylem.soils[z]->root.setKComp(p, xylem.soils[z]->root.wb(x));
                 } //End if//
                 if (refilling == false)
@@ -2450,7 +2400,6 @@ int Plant::compositeCurve(const double &e, const int &p, int &total) //'stores c
     xylem.root_pressure[p] = xylem.soils[1]->root.getPressure();
     xylem.stem.setPressureComp(p, xylem.stem.getPressure());
     xylem.leaf.setPressureComp(p, xylem.leaf.getPressure());
-    // std::cout << "pleaf[" << p << "]: " << xylem.leaf.getPressure() << std::endl; 
     
     if (e > 0) { //if// 
         xylem.leaf.setKComp(p, e / (xylem.leaf.getPressure() - xylem.stem.getPressure())); //'leaf element conductance
@@ -2861,7 +2810,6 @@ void Plant::canopypressure(const int &dd,
                 
                 if (p == 1) {
                     dedplzero = einc / (xylem.leaf.getPressure() - plold); //note: pl is returned by "leaf" routine
-                    // std::cout << "dedplzero: " << einc << " " << xylem.leaf.getPressure() << " " << plold << std::endl;
                 }
                 dedpl = einc / (xylem.leaf.getPressure() - plold);
                 
@@ -3056,7 +3004,6 @@ void Plant::canopypressure(const int &dd,
                 if (klossv[p] < 0)
                     klossv[p] = 0; //no negative risks
                 dpa[p] = amaxfracsh[p] - klossv[p]; //profit, with revenue from historical curve and cost from virgen one
-                // std::cout << amaxfracsh[p] << " " << klossv[p] << std::endl;
                 if (p < PROFT_MAX_RUN_MEAN - 1)
                     rmean = 0;
                 if (p >= PROFT_MAX_RUN_MEAN - 1)  //get running mean
@@ -3078,7 +3025,6 @@ void Plant::canopypressure(const int &dd,
                 {
                     dpamax = rmean;
                     mdsh = xylem.leaf.getPressureVirgin(p);  //midday pressure for shade layer from virgin curve
-                // std::cout << "rmean > dpamax : " << mdsh << " rmean: " << rmean << std::endl;
                 }
 
             } while (!(einc * p >= param.getModelParam("g_max") * xylem.leaf.lavpdsh[p] || total == 0 || (rmean < dpamax / DPA_MAX_CUTOFF && p > PROFT_MAX_RUN_MEAN && p > 15) || klossv[p] > 0.9 || p >= totalv));
@@ -3118,7 +3064,6 @@ void Plant::canopypressure(const int &dd,
         carbon.cincsh = carbon.cinsh[k];
         //If k > 1 Then deda = (eplantl(k) - eplantl(k - 1)) / (psyn(k) - psyn(k - 1))
         haltsh = k; //halt is index of midday datum
-        // std::cout << "lpc: " << xylem.leaf.getPressureComp(k) << " mdsh: " << mdsh << std::endl;
     } else { // ecritsysem == 0
         goto tenMarker; // no midday
     }
@@ -3160,23 +3105,17 @@ void Plant::updatecurves(const int &halt) //'resets element E(P) curves
     //'if k<kmin, re-assign e//'s on element curve by back-calculating
     for (int z = 1; z <= layers; z++)//z = 1 To layers
     {
-        std::cout << "Layer: " << z << std::endl;
         RootComponent *root = &xylem.soils[z]->root;
         if (true)
         {
-            std::cout << "RKComp " << root->getKComp(halt) << " RKmin " << root->getKmin() << std::endl;
             // if (root->getKComp(halt) < root->getKmin())
             if ((root->getKmin() - root->getKComp(halt)) > 1e-9) // numerical instabilities means we should check if greater than some threshold value
             {
                 root->setKmin(root->getKComp(halt));
                 phigh = int(xylem.root_pressure[halt] / pinc) + 1; //'pressure datum just above the target
-                std::cout << "Phigh: " << phigh << std::endl;
                 for (int k = phigh; k >= 0; k--)//k = phigh To 0 Step -1 //'back-calculate e//'s
                 {
-                    std::cout << k << std::endl;
-                    std::cout << "Old ER: " << root->getEp(k) << std::endl;
                     root->setEp(k, root->getEp(phigh) - root->getKmin() * pinc * (phigh - k));
-                    std::cout << "New ER: " << root->getEp(k) << std::endl;
                     root->setK(k, root->getKmin()); //'back-calculate KR(Z,K) too for roots (not stem or leaves)
                 } //EndFor  k
             } //EndIf//
@@ -3212,8 +3151,6 @@ void Plant::soilflow() //'gets flow out of each layer via soil, not including th
     {
         SoilLayer *sl = xylem.soils[z];
         SoilLayer *next_sl = xylem.soils[z + 1];
-
-        // printf("kmax: %lf, kkmax[z+1]: %lf, pd[z]: %lf, pd[z+1]: %lf\n", sl->rhizosphere.getKmax(), next_sl->kkmax, sl->predawn_pressure, next_sl->predawn_pressure);
         
         double store = sl->rhizosphere.getKmax(); //'store the rhizosphere kmax for now
         sl->rhizosphere.setKmax(next_sl->kkmax * 1 / (sl->depth / 2.0 + next_sl->depth / 2.0)); //'reset it to the vertical soil kmax per m2 ground using distance between midpoints of each layer. Use properties of fatter layer.
@@ -3237,7 +3174,6 @@ void Plant::soilflow() //'gets flow out of each layer via soil, not including th
                 e = e + s;
                 p1 = p2; //'reset p1 for next increment
             } while (!(p2 >= pend || p2 > 5));
-            // std::cout << "e-" << z << " " << e << std::endl;
             //Loop Until p2 >= pend Or p2 > 5 //'cutoff for really dry soil
             if (sl->predawn_pressure < next_sl->predawn_pressure) { //if// //'flow is out of layer z (positive)
                 sl->flow = e; //'flow in kg hr-1 m-2 ground area
