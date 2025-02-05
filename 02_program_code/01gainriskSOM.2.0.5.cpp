@@ -830,7 +830,6 @@ public:
                 for (int rC = 0; rC < row.size(); rC++)
                 {
                     if (rowCount < 100 && rowCount >= 0 && rC < 10 && rC >= 0) {
-                        std::cout << std::atof(row[rC].c_str()) << std::endl;
                         GSCells[rowCount + 1][rC + 1] = std::atof(row[rC].c_str()); // load array as double
                                                                                     // all data i/o is in double
                     }
