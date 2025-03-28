@@ -16,6 +16,7 @@ void Plant::setConfig() { // sets up model configuration
     {
         std::cout << "On" << std::endl;
         config_data.getColumnValue(species_no, "i_speciesN");
+        species_no -= 1;
         std::cout << "MODE: Setting species number to: " << species_no + 1 << std::endl; 
     } else {
         std::cout << "Off" << std::endl;
@@ -260,11 +261,11 @@ void Plant::setConfig() { // sets up model configuration
     std::cout << growing_season_limits_data_path << std::endl;
 
     std::cout << "  Path to time-step header file: " << std::endl;
-    data_header_file_path = config_data.getColumnValue("i_dataheader");
+    data_header_file_path = DATA_HEADER_FILE_PATH;
     std::cout << data_header_file_path << std::endl;
     
     std::cout << "   Path to annual summary header file: " << std::endl;
-    sum_header_file_path = config_data.getColumnValue("i_sumheader");
+    sum_header_file_path = SUM_HEADER_FILE_PATH;
     std::cout << sum_header_file_path << std::endl;
 }
 
