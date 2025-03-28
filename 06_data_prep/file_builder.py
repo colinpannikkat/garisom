@@ -666,7 +666,6 @@ def readin_data(filename: str) -> DataFrame:
               faster, but less accurate (setting too high can cause 
               Newton-Rhapson root pressure solving failure)
     - `lsc`: Leaf specific conductance in mmol m-2 w-1 MPa-1
-    - `lscPref`: Water potential for LSC
     - `cr`: Root element Weibull parameter c
     - `br`: Root element Weibull parameter b
     - `cs`: Stem element Weibull parameter c
@@ -710,9 +709,6 @@ def readin_data(filename: str) -> DataFrame:
                     multiple
     - `speciesN`: Number of species to run the model
     - `climateData`: Path to file with climate forcing variables `dataset.csv`
-    - `gsData`: Path to file with growing season data `seasonlimits.csv`
-    - `dataHeader`: Path to time-step header file `dataheader.csv`
-    - `sumHeader`: Path to annual summary header file `sumheader.csv`
     '''
     try:
         df = pd.read_csv(filename, on_bad_lines="error", index_col=False)
@@ -732,7 +728,7 @@ def _calculate_kmax(la_ba: pd.Series,
     # Unit conversions of Kleaf
     # 1 mmol H2O = 18.01528*10^-6 kg H2O
     # 1 s = 1/3600 h
-    k_leaf = k_leaf * (18.01528 * 10e-6) * 3600; # Kleaf (kg h^-1 m^-2 MPa^-1)
+    k_leaf = k_leaf * (18.01528 * 1e-6) * 3600; # Kleaf (kg h^-1 m^-2 MPa^-1)
     # Now we can solve for tree Kmax knowing that K=1/Resistance
     # As the resistances are in series there is the following equation that has
     # to be satisfied
@@ -785,6 +781,7 @@ def build_config_param_files(data: DataFrame, out_data_path: str) -> None:
     rhizo_per = 50          # Average percent of whole plant resistance in rhizosphere
     leaf_per = 25           # Saturated % of tree resistance in leaves
     root_aspect = 1         # Max radius of root system per max depth
+    root_beta = 0.95
     emiss = 0.97            # Long wave emissivity
     atm_trans = 0.75        # Atmospheric transmittance from weather data
     mole_frac = 0.21        # Mole fraction (not used in the provided code)
@@ -813,10 +810,18 @@ def build_config_param_files(data: DataFrame, out_data_path: str) -> None:
         df_config['i_stemOnly'] = group['stemOnly']
         df_config['i_multipleSP'] = group['multipleSP']
         df_config['i_speciesN'] = group['speciesN']
-        df_config['i_ClimateData'] = group['climateData']
-        df_config['i_GSData'] = group['gsData']
-        df_config['i_dataheader'] = group['dataHeader']
-        df_config['i_sumheader'] = group['sumHeader']
+
+        # Get current working directory and provide relative file path to
+        # dataset.csv and seasonlimits.csv
+        cwd = os.getcwd()
+        if out_data_path != ".":
+            if out_data_path[0] == '/':
+                cwd = cwd + out_data_path
+            else:
+                cwd = cwd + "/" + out_data_path
+                
+        df_config['i_ClimateData'] = f"{cwd}/{site[0]}/dataset.csv"
+        df_config['i_GSData'] = f"{cwd}/{site[0]}/seasonlimits.csv"
         df_param['i_sp'] = group['sp']
         df_param['i_region'] = group['region']
         df_param['i_site'] = group['site']
@@ -847,7 +852,7 @@ def build_config_param_files(data: DataFrame, out_data_path: str) -> None:
         df_param['i_leafWidth'] = group['leafWidth'].fillna(leaf_width)
         df_param['i_leafAngleParam'] = group['leafAngleParam'].fillna(leaf_angle)
         df_param['i_aspect'] = group['aspect'].fillna(root_aspect)
-        df_param['i_rootBeta'] = group['rootBeta']
+        df_param['i_rootBeta'] = group['rootBeta'].fillna(root_beta)
         df_param['i_leafPercRes'] = group['leafPercRes'].fillna(leaf_per)
         df_param['i_kmaxTree'] = _calculate_kmax(df_param['i_leafPerBasal'], group['lsc'], df_param['i_leafPercRes'])
         df_param['i_pInc'] = group['pInc'].fillna(p_inc)
