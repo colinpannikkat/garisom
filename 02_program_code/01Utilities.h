@@ -22,6 +22,8 @@
 // input file names
 #define CONFIG_FILE_PATH "../03_test_data/configuration.csv"
 #define PARAMETER_FILE_PATH "../03_test_data/parameters.csv"
+#define DATA_HEADER_FILE_PATH "./dataheader.csv"
+#define SUM_HEADER_FILE_PATH "./sumheader.csv"
 
 // output precision
 #define FIO_PRECISION 12
