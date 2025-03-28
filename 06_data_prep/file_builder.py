@@ -496,11 +496,11 @@ def readin_nldas_data(climate_data: list[tuple[DataFrame, str]],
 
         # This assumes data is sorted oldest to newest, which it should be if
         # loaded via readin_climate_data()
-        start_date = datetime.strptime(f"{int(c_data.iloc[0]['Year'])}-{int(c_data.iloc[0]['Day'])}-{int(c_data.iloc[0]['Hour'])}", "%Y-%d-%H").strftime("%Y-%m-%dT%H")
+        start_date = datetime.strptime(f"{int(c_data.iloc[0]['Year'])}-{int(c_data.iloc[0]['Day'])}-{int(c_data.iloc[0]['Hour'])}", "%Y-%j-%H").strftime("%Y-%m-%dT%H")
         if c_data.iloc[-1]['Day'] == 366: # leap year, for some reason datetime strptime can't handle 366 day
             end_date = (datetime(int(c_data.iloc[-1]['Year']), 1, 1) + timedelta(days=int(c_data.iloc[-1]['Day']) - 1, hours=int(c_data.iloc[-1]['Hour']))).strftime("%Y-%m-%dT%H")
         else:
-            end_date = datetime.strptime(f"{int(c_data.iloc[-1]['Year'])}-{int(c_data.iloc[-1]['Day'])}-{int(c_data.iloc[-1]['Hour'])}", "%Y-%d-%H").strftime("%Y-%m-%dT%H")
+            end_date = datetime.strptime(f"{int(c_data.iloc[-1]['Year'])}-{int(c_data.iloc[-1]['Day'])}-{int(c_data.iloc[-1]['Hour'])}", "%Y-%j-%H").strftime("%Y-%m-%dT%H")
 
         start_date, end_date = _convert_time_to_utc(start_date, end_date, latitude, longitude)
 
@@ -903,6 +903,10 @@ def main():
     # Readin climate data specified in configuration
     print("Reading in climate data specified in configuration...")
     climate_data = readin_climate_data(param_data['climateData'], param_data['site'])
+
+    # Check if there is climate data within the provided range
+    for c_data in climate_data:
+        assert(args.initial_year >= c_data[0]['Year'].min() and args.final_year <= c_data[0]['Year'].max())
 
     # Check climate data for missing columns and if there are the missing values
     # will be imputed from NLDAS site data.
