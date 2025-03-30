@@ -99,7 +99,8 @@ class CSVData {
         void output(std::string out_file_name);
         
         // Generic getter, used when accessing numerical data
-        T getColumnValue(const std::string& column_name, int row=0);
+        T& getColumnValue(const std::string& column_name, int row=0);
+        T& operator()(const std::string &column_name, int row=0);
 
         // Overloaded getter for when accessing data that is stored in string format and requires conversion
         // Typically required if class is instantiated with <std::string> type
@@ -549,6 +550,11 @@ inline int CSVData<T>::col_size() {
     return num_cols;
 }
 
+template <typename T>
+T& CSVData<T>::operator()(const std::string &column_name, int row) {
+    return getColumnValue(column_name, row);
+}
+
 /**
  * @brief Retrieves the value of a specified column in a given row.
  * 
@@ -562,7 +568,7 @@ inline int CSVData<T>::col_size() {
  *         Returns an empty string if the column name does not exist.
  */
 template <typename T>
-T CSVData<T>::getColumnValue(const std::string &column_name, int row/*=0*/) {
+T& CSVData<T>::getColumnValue(const std::string &column_name, int row/*=0*/) {
     assert(row < data.size());
     if (header.find(column_name) != header.end()) {
         int col_index = header[column_name];
@@ -571,8 +577,10 @@ T CSVData<T>::getColumnValue(const std::string &column_name, int row/*=0*/) {
     } else {
         // fprintf(stderr, "Column name %s does not exist, creating...\n", column_name.c_str());
         setColumnValue(T(), row, column_name);
+        int col_index = header[column_name];
+        assert(col_index < data[row].size());
+        return data[row][col_index];
     }
-    return T();
 }
 
 // /**

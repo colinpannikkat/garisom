@@ -14,6 +14,10 @@ Parameters::Parameters() {
     // length.reserve(100);
 }
 
+double& Parameters::operator()(const std::string &param_name) {
+    return getModelParam(param_name);
+}
+
 double& Parameters::getModelParam(const std::string &param_name) {
     if (model_parameters.find(param_name) != model_parameters.end()) {
         return model_parameters[param_name];

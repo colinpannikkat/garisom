@@ -45,6 +45,8 @@ class Parameters {
         Parameters();
 
         double& getModelParam(const std::string &param_name);
+        double& operator()(const std::string &param_name);
+
         void setModelParam(double value, const std::string &param_name);
 
         int& getGsArYear(int index);
