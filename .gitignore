@@ -4,6 +4,7 @@
 *.dSYM
 garisom205
 main
+run
 env/*
 cottonwood_leafcooling2023/
 aspen_lowstress_data/
