@@ -66,7 +66,7 @@ int main(int argc, char *argv[])
     std::cout << " ------------------------------------------------" << std::endl;
     std::cout << std::endl;
     
-    readDataSheet(plantModel->data, plantModel->sum_data, plantModel->climate_forcing_data_path, plantModel->data_header_file_path, plantModel->sum_header_file_path);
+    readDataSheet(plantModel->data, plantModel->climate_forcing_data_path, plantModel->data_header_file_path);
     readGSSheet(plantModel->gs_data, plantModel->growing_season_limits_data_path, plantModel->useGSData);
 
     readGrowSeasonData(plantModel->param, plantModel->gs_data);
@@ -127,7 +127,6 @@ int main(int argc, char *argv[])
             }
             if (dd % 1000 == 0)
                 std::cout << "Timestep " << dd << " completed" << std::endl;
-
         } while (!(plantModel->data.getColumnValue("julian-day", dd + 1) < 0.01)); // loop until the jd value on next row is zero -- it's an integer, but everything is stored in the array as double
 
     plantModel->data.output("timesteps_output.csv");

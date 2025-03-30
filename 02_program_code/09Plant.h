@@ -36,14 +36,12 @@ class Plant {
         CSVData<std::string> param_data;
         CSVData<double> gs_data;
         CSVData<double> data;           // up to 2000k rows and 100 columns of input data
-        CSVData<double> sum_data;
 
         // Model Variables
         std::string stageNames[STAGE_ID_FUT_STRESS_NOACCLIM + 1] = {"standard"},
                     growing_season_limits_data_path, 
                     climate_forcing_data_path, 
                     data_header_file_path, 
-                    sum_header_file_path,
                     night;      // know whether is night
 
         int         species_no, 

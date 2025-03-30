@@ -3,7 +3,7 @@ CXXFLAGS = -Wall -pedantic -std=c++17 -g -fsanitize=address -O3
 
 SRC = main.cpp 01Utilities.cpp 09Plant.cpp 11Parameters.cpp 08Xylem.cpp 04Component.cpp 02Soils.cpp 07Leaf.cpp 10Carbon.cpp
 OBJ = $(SRC:.cpp=.o)
-EXEC = main
+EXEC = run
 
 all: $(EXEC)
 

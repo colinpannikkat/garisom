@@ -263,10 +263,6 @@ void Plant::setConfig() { // sets up model configuration
     std::cout << "  Path to time-step header file: " << std::endl;
     data_header_file_path = DATA_HEADER_FILE_PATH;
     std::cout << data_header_file_path << std::endl;
-    
-    std::cout << "   Path to annual summary header file: " << std::endl;
-    sum_header_file_path = SUM_HEADER_FILE_PATH;
-    std::cout << sum_header_file_path << std::endl;
 }
 
 void Plant::initModelVars() {

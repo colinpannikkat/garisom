@@ -23,7 +23,6 @@
 #define CONFIG_FILE_PATH "../03_test_data/configuration.csv"
 #define PARAMETER_FILE_PATH "../03_test_data/parameters.csv"
 #define DATA_HEADER_FILE_PATH "./dataheader.csv"
-#define SUM_HEADER_FILE_PATH "./sumheader.csv"
 
 // output precision
 #define FIO_PRECISION 12
@@ -306,22 +305,9 @@ CSVData<T>::CSVData(const std::string& data_file_name) {
  */
 template <typename T>
 CSVData<T>::CSVData(const std::string &data_file_name, const std::string &header_file_name, bool skip_first/*=true*/) {
-    std::ifstream data_file(data_file_name);
     
-    if (!data_file.is_open()) {
-        std::cout << "UNRECOVERABLE: Failed to open file " << data_file_name << std::endl;
-        std::cout << "Model stops " << std::endl;
-        std::cout << std::endl;
-        std::exit(1);
-    }
-
-    // Easy hack to skip first line in data file (header)
-    if (skip_first) {
-        std::string line;
-        getline(data_file, line);
-    }
-
     std::ifstream header_file(header_file_name);
+    this->num_cols = 0;
 
     if (!header_file.is_open()) {
         std::cout << "UNRECOVERABLE: Failed to open file " << header_file_name << std::endl;
@@ -330,9 +316,27 @@ CSVData<T>::CSVData(const std::string &data_file_name, const std::string &header
         std::exit(1);
     }
 
-    num_cols = 0;
     readHeader(header_file);
-    readData(data_file);
+
+    if (!data_file_name.empty()) {
+
+        std::ifstream data_file(data_file_name);
+        
+        if (!data_file.is_open()) {
+            std::cout << "UNRECOVERABLE: Failed to open file " << data_file_name << std::endl;
+            std::cout << "Model stops " << std::endl;
+            std::cout << std::endl;
+            std::exit(1);
+        }
+
+        // Easy hack to skip first line in data file (header)
+        if (skip_first) {
+            std::string line;
+            getline(data_file, line);
+        }
+
+        readData(data_file);
+    }
 }
 
 /**
@@ -771,7 +775,7 @@ class Parameters; // moved header file include to .cpp, in future remove below f
 
 bool locateRanges(CSVData<std::string> &config_data, std::string config_data_file, CSVData<std::string> &param_data, std::string param_data_file);
 void readGSSheet(CSVData<double> &gs_data, std::string &gs_file_name, bool use_gs_data);
-void readDataSheet(CSVData<double> &data, CSVData<double> &sum_data, std::string &data_file_name, std::string &header_file_name, std::string &sum_header_file_name);
+void readDataSheet(CSVData<double> &data, std::string &data_file_name, std::string &header_file_name);
 void readGrowSeasonData(Parameters &param, CSVData<double> &gs_data);
 void readSiteAreaValues();
 

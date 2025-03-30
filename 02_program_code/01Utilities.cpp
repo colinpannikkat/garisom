@@ -80,10 +80,9 @@ void readGSSheet(CSVData<double> &gs_data, std::string &gs_file_name, bool use_g
  * @param header_file_name The name of the file containing the header information for the main data.
  * @param sum_header_file_name The name of the file containing the header information for the summary data.
  */
-void readDataSheet(CSVData<double> &data, CSVData<double> &sum_data, std::string &data_file_name, std::string &header_file_name, std::string &sum_header_file_name) {
+void readDataSheet(CSVData<double> &data, std::string &data_file_name, std::string &header_file_name) {
 
     data = CSVData<double>(data_file_name, header_file_name);
-    sum_data = CSVData<double>(data_file_name, sum_header_file_name);
 
     std::cout << "Finished climate data read." << std::endl;
 }
