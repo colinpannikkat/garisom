@@ -404,6 +404,8 @@ void Plant::cleanModelVars() {
 
 /* Get Van Genuchten alpha // override if provided */
 // This function obtains the Van Genuchten parameters for a given texture
+// alpha is MPa-1, instead of normal cm-1
+// n is unitless
 void get_vgparams(std::string texture, const double &layers, std::vector<SoilLayer*> &soils) {
     double a, n, soilkmax, thetasat;
     if (texture == "sand"){
