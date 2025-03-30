@@ -8,6 +8,9 @@ run
 env/*
 cottonwood_leafcooling2023/
 aspen_lowstress_data/
+populus-tremuloides_garisom_test_files/
 highstress_data/
 .vscode/
 *.o
+sum_output.csv
+timesteps_output.csv
