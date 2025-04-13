@@ -1,6 +1,8 @@
 // Functions to calculate soil parameters at start
 #include "02Soils.h"
 
+/* Getters and setters for the Rhizosphere component attributes. */
+
 void RhizosphereComponent::setVanGenAlpha(double alpha) {
     this->van_gen_alpha = alpha;
 }
@@ -17,35 +19,78 @@ void RhizosphereComponent::setThetasat(double thetasat) {
 double RhizosphereComponent::getThetaSat() { return thetasat; }
 
 /**
- * @brief Calculates the van Genuchten (vg) function for a given pressure.
+ * @brief Calculates the conductivity for a given pressure using the van 
+ * Genuchten (vg) function.
  *
- * This function computes the van Genuchten function, which is commonly used 
- * in soil science to describe the relationship between soil water content 
- * and soil water potential (pressure). The function uses the van Genuchten 
+ * This function computes the van Genuchten function, which is used to determine
+ * rhizosphere hydraulic conductance. The function uses the van Genuchten 
  * parameters (alpha and n) and the maximum hydraulic conductivity (k_max) 
  * to perform the calculation.
  *
  * @param pressure The soil water potential (pressure) for which the vg function is calculated.
- * @return The calculated value of the van Genuchten function for the given pressure.
+ * @return The rhizosphere hydraulic conductance at a certain pressure.
  */
 double RhizosphereComponent::vg(double pressure) {
     double vp = 1 / (pow((van_gen_alpha * pressure), van_gen_n) + 1);
     return k_max * pow(vp, ((van_gen_n - 1) / (2 * van_gen_n))) * pow((pow((1 - vp), ((van_gen_n - 1) / van_gen_n)) - 1), 2);
 }
 
-double RhizosphereComponent::rvg(double pressure) { //'gives soil Y in MPa from soil theta/thetasat=x
+/**
+ * @brief Computes the soil water retention function (Y) in MPa based on the soil 
+ *        water content ratio (theta/thetasat).
+ * 
+ * This function calculates the soil water potential using the van Genuchten 
+ * model parameters. It takes the soil pressure as input and computes the 
+ * corresponding soil water potential.
+ * 
+ * @param pressure The soil pressure (in MPa) used in the van Genuchten model.
+ *                 This value represents the matric potential of the soil.
+ * 
+ * @return The computed soil water potential (Y) in MPa.
+ * 
+ * @note The function assumes that the van Genuchten parameters (van_gen_n and 
+ *       van_gen_alpha) are properly initialized and valid for the soil type 
+ *       being modeled.
+ */
+double RhizosphereComponent::rvg(double pressure) {
     double aa = pow((pow(pressure, (1 / (1 - 1 / van_gen_n))) + 1), (1 / van_gen_n));
     double bb = (pow(pressure, (1 / (van_gen_n - 1))) * van_gen_alpha);
     return aa / bb;
 }
 
-double RhizosphereComponent::swc(double pressure) { //'gives soil water content, theta/thetasat from soil water potential in MPa=x
+/**
+ * @brief Calculates the soil water content (SWC) based on soil water potential.
+ * 
+ * This function computes the soil water content (theta/thetasat) using the 
+ * van Genuchten equation, which relates soil water potential (pressure) to 
+ * soil water content. The equation is parameterized by the van Genuchten 
+ * parameters `van_gen_alpha` and `van_gen_n`.
+ * 
+ * @param pressure The soil water potential in MPa.
+ * @return The soil water content as a fraction of saturation (theta/thetasat).
+ */
+double RhizosphereComponent::swc(double pressure) {
     //swc = (1 / (1 + (a(z) * x) ^ n(z))) ^ (1 - 1 / n(z))
     return pow((1 / (1 + pow((van_gen_alpha * pressure), van_gen_n))), (1 - 1 / van_gen_n));
 }
 
-void RhizosphereComponent::trapzd(const double &p1, const double &p2, double &s, const int &t, int &it) { //integrates root element z weibull
-
+/**
+ * @brief Performs numerical integration using the trapezoidal rule.
+ * 
+ * This function calculates the integral of rhizosphere conductivity over the 
+ * interval [p1, p2] to determine the steady state flow rate.
+ * 
+ * This function uses a trapezoidal approximation of the integral, refining the 
+ * approximation with each call by doubling the number of subintervals.
+ * 
+ * @param p1 The lower bound of the integration interval.
+ * @param p2 The upper bound of the integration interval.
+ * @param s Reference to the variable where the computed integral value will be stored.
+ * @param t An integer flag indicating whether this is the first call (t == 0) or a subsequent call.
+ * @param it Reference to the number of subintervals used in the integration. This value is updated
+ *           with each call to refine the approximation.
+ */
+void RhizosphereComponent::trapzd(const double &p1, const double &p2, double &s, const int &t, int &it) {
     double sum = 0, x = 0, del = 0;
 
     if (t == 0)
@@ -68,18 +113,57 @@ void RhizosphereComponent::trapzd(const double &p1, const double &p2, double &s,
     }
 }
 
-void RhizosphereComponent::qtrap(double &p1, double &p2, double &s) { //'evaluates accuracy of root element z integration
-    int it = 0;    // keeping track of iterations
-    double olds = -1; //'starting point unlikely to satisfy if statement below
+/**
+ * @brief Evaluates the accuracy of root element z integration using the trapezoidal rule.
+ * 
+ * This function iteratively refines the integration result using the trapezoidal rule
+ * until the desired accuracy is achieved or the maximum number of iterations is reached.
+ * 
+ * @param p1 Reference to the first parameter for the integration range.
+ * @param p2 Reference to the second parameter for the integration range.
+ * @param s Reference to the variable where the integration result is stored.
+ * 
+ * The function uses a helper function `trapzd` to perform the integral calculations.
+ * The iteration stops when the difference between the current and previous integration
+ * results is less than 0.1% of the previous result, or when the maximum number of iterations
+ * (`TRAP_ITER_MAX`) is reached.
+ */
+void RhizosphereComponent::qtrap(double &p1, double &p2, double &s) {
+    int it = 0;
+    double olds = -1;
     for (int t = 0; t < TRAP_ITER_MAX; t++)
     {
         trapzd(p1, p2, s, t, it);
-        if (std::abs(s - olds) < (0.001 * std::abs(olds))) // changing EPSX to 0.001 is the only reason for redeclaration
+        if (std::abs(s - olds) < (RHIZO_EPSX * std::abs(olds)))
             return;
         olds = s;
     }
 }
 
+/**
+ * @brief Calculates the flow rate in the rhizosphere component based on 
+ * pressure increments and a minimum conductivity threshold.
+ * 
+ * This function computes the flow rate by iteratively integrating over pressure 
+ * increments and updating the cumulative flow and conductivity values. The process 
+ * stops when the conductivity drops below the specified minimum threshold or 
+ * when the iteration limit is reached.
+ * 
+ * @param p_inc The pressure increment used for integration.
+ * @param k_min The minimum conductivity threshold to terminate the calculation.
+ * 
+ * @details
+ * - The function initializes the cumulative flow (`e_p`) and conductivity (`k`) arrays to zero.
+ * - It uses a loop to incrementally calculate the flow and update the conductivity using the `vg` function.
+ * - The integration is performed using the `qtrap` function over the pressure range.
+ * - The loop terminates when the conductivity falls below `k_min` or after 100,000 iterations.
+ * - The critical pressure (`p_crit`) is set to the last pressure value (`p2`) when the loop exits.
+ * 
+ * @note
+ * - The `vg` Van Genuchten function is assumed to calculate the conductivity.
+ * - The `qtrap` function is assumed to perform numerical integration over the pressure range.
+ * - The maximum number of iterations is hardcoded to 100,000 to prevent infinite loops.
+ */
 void RhizosphereComponent::calc_flow_rate(const double &p_inc, const double &k_min) {
     memset(e_p, 0, sizeof(e_p));
     memset(k, 0, sizeof(k));
@@ -93,90 +177,11 @@ void RhizosphereComponent::calc_flow_rate(const double &p_inc, const double &k_m
         qtrap(p1, p2, s);
         e += s;
         this->e_p[i] = e;
-        this->k[i] = vg(p2); //weibull k
+        this->k[i] = vg(p2); // vg k
         p1 = p2; //reset p1 for next increment
         i += 1;
-        if (i == 100000)
+        if (i == FLOW_ITER_LIMIT)
             break;
     } while (!(this->k[i - 1] < k_min));
     this->p_crit = p2;
-}
-
-/*Get Van Genuchten alpha // override if provided*/
-// This function obtains the Van Genuchten parameters for a given texture
-void soils::get_vgparams(std::string &texture, long &layers, std::string (&soillayersTable)[2001][101], long &rowLR, long &colLR) {
-    std::string a, n, soilkmax, thetasat;
-    if (texture == "sand"){
-        a = "1479.5945"; 
-        n = "2.68";
-        soilkmax = "30305.88"; 
-        thetasat = "0.43";
-    } else if (texture == "loamy sand"){
-        a = "1265.3084";
-        n = "2.28";
-        soilkmax = "14897.84";
-        thetasat = "0.41";
-    } else if (texture == "sandy loam") {
-        a = "765.3075";
-        n = "1.89";
-        soilkmax = "4510.168";
-        thetasat = "0.41";
-    } else if (texture == "loam") {
-        a = "367.3476";
-        n = "1.56";
-        soilkmax = "1061.216";
-        thetasat = "0.43";
-    } else if (texture == "silt") {
-        a = "163.2656";
-        n = "1.37";
-        soilkmax = "255.1";
-        thetasat = "0.46";
-    } else if (texture == "silt loam") {
-        a = "204.082";
-        n = "1.41";
-        soilkmax = "459.18";
-        thetasat = "0.45";
-    } else if (texture == "sandy clay loam") {
-        a = "602.0419";
-        n = "1.48";
-        soilkmax = "1336.724";
-        thetasat = "0.39";
-    } else if (texture == "clay loam") {
-        a = "193.8779";
-        n = "1.31";
-        soilkmax = "265.304";
-        thetasat = "0.41";
-    } else if (texture == "silty clay loam") {
-        a = "102.041";
-        n = "1.23";
-        soilkmax = "71.428";
-        thetasat = "0.43";
-    } else if (texture == "sandy clay") {
-        a = "275.5107";
-        n = "1.23";
-        soilkmax = "122.448";
-        thetasat = "0.38";
-    } else if (texture == "silty clay") {
-        a = "51.0205";
-        n = "1.09";
-        soilkmax = "20.408";
-        thetasat = "0.36";
-    } else if (texture == "clay") {
-        a = "81.6328";
-        n = "1.09";
-        soilkmax = "204.08";
-        thetasat = "0.38";
-    } else {
-        std::cout << "WARNING: Unrecoverable model failure!" << std::endl;
-        std::cout << "SOURCE: Incorrect soil texture category" << std::endl;
-        std::cout << "ACTION: Model stops " << std::endl;
-        std::cout << std::endl;
-        abort();
-    }
-    for(long k=1;k<=layers;k++){
-        soillayersTable[rowLR + k][colLR + 3] = a; 
-        soillayersTable[rowLR + k][colLR + 4] = n;
-        soillayersTable[rowLR + k][colLR + 5] = soilkmax;
-        soillayersTable[rowLR + k][colLR + 6] = thetasat;
-    }
 }

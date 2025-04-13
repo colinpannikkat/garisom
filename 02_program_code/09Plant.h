@@ -16,8 +16,7 @@
     soil in five horizontal series, connected to five root elements in parallel, 
     each connected layers."
 
-    The in-series components are contained within XylemComponent, of which the
-    number is configurable in the model parameters.
+    The in-series components are contained within XylemComponent.
 
 */
 

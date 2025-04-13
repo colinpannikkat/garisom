@@ -106,7 +106,9 @@ class XylemComponent {
                    transform of van Genuchten K(P_s) function.
 
         */
-        void calc_net_flow(const double &p_inc, const double &k_min);
+        void calc_net_flow();
+
+        void calc_flow(const double &p_inc, const double &k_min);
 
         // function that accounts for xylem cavitation fatigue
         double fatigue(double &b_wb, const double &sapwood_t, const double &conduit_d, const double &max_plc_x);

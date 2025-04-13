@@ -84,7 +84,7 @@ class CarbonAssimilationModel {
                 - Canopy leaf area index: L_ai
             
         */
-        double &net_photosynthesis();
+        double &net_photosynthesis(); // this function is empty for now, the actual calculations are done in canopypressure()
 
         void assimilation(const int &p,
                           const double &gmax,
@@ -169,6 +169,6 @@ class CarbonAssimilationModel {
                                 const double emd,
                                 const double lavpdshmd,
                                 const double leaftshmd);
-};;
+};
 
 #endif

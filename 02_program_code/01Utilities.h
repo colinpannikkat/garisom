@@ -19,12 +19,12 @@
 #include <unordered_map>
 #include <assert.h>
 
-// input file names
+// Input File Names
 #define CONFIG_FILE_PATH "../03_test_data/configuration.csv"
 #define PARAMETER_FILE_PATH "../03_test_data/parameters.csv"
 #define DATA_HEADER_FILE_PATH "./dataheader.csv"
 
-// output precision
+// Output Precision
 #define FIO_PRECISION 12
 
 // staging
@@ -35,7 +35,7 @@
 #define STAGE_ID_FUT_STRESS 4
 #define STAGE_ID_FUT_STRESS_NOACCLIM 5
 
-// data arrays
+// Data Arrays
 #define MAX_SUMMARY_COLS 121
 #define MAX_SUMMARY_ROWS 2001
 #define PARAMFILE_MAXROWS 2001
@@ -46,12 +46,14 @@
 #define CONFIGFILE_MAXCOLS 101
 #define CURVE_MAX 100001
 
-// constants
+// Constants
 #define PROFT_MAX_RUN_MEAN 1        // running mean for profit maximization
-#define DPA_MAX_CUTOFF 1.1            // cutoff for stopping dpamax search
+#define DPA_MAX_CUTOFF 1.1          // cutoff for stopping dpamax search
 #define MIN_WIND_THRESH 0.4515      // m s-1'minimum wind threshold
-#define TRAP_ITER_MAX 70            // itmax for trapzd routine used for xylem only
-#define EPSX 0.0001                 // acceptable error for e integral for xylem
+#define TRAP_ITER_MAX 70            // itmax for trapzd routine
+#define FLOW_ITER_LIMIT 100000      // itmax for calc_flow_rate
+#define XYLEM_EPSX 0.0001           // acceptable error for e integral for xylem
+#define RHIZO_EPSX 0.001            // acceptable error for e integral for rhizosphere
 #define GMAX 1000000                // maximum G, wet soil, vpd = 0, in kg m - 2 hr - 1 basal area
 #define PI 3.14159
 #define SBC 0.0000000567            // Stefan-Boltzmann constant in W m-2 K-4
@@ -63,6 +65,8 @@
 #define ABS_PAR 0.8                 // Absorptivity of PAR for leaves
 #define ABS_NIR 0.2                 // Absorptivity of near infrared for leaves
 #define MAX_YEARS 90
+
+// Iteration Limits
 
 /**
  * @class CSVData

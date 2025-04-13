@@ -79,18 +79,6 @@ int main(int argc, char *argv[])
 
     plantModel->resetLayerStatus();
 
-    std::cout << "Calculating critical points for components" << std::endl;
-    plantModel->componentPCrits();
-
-    for (int k = 1; k <= plantModel->layers; k++) // k = 1 To layers //exclude the top layer
-    {
-        plantModel->xylem.soils[k]->root.setKmin(plantModel->xylem.soils[k]->root.getKmax());
-    }
-
-    plantModel->xylem.stem.setKmin(plantModel->xylem.stem.getKmax());
-    plantModel->xylem.leaf.setKmin(plantModel->xylem.leaf.getKmax());
-    plantModel->kmin = plantModel->param.getModelParam("ksatp");
-
     int dd = 0,
     successCode = 0;
 

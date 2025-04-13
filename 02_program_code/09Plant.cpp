@@ -6,6 +6,36 @@ Plant::Plant(int stage) {
     srand(42);
 }
 
+/**
+ * @brief Configures the Plant model by setting up various parameters and modes
+ *        based on the input configuration data. This includes settings for 
+ *        plant community, soil, climate, hydraulics, BA:GA optimization, and 
+ *        file locations.
+ * 
+ * @details
+ * The function performs the following tasks:
+ * 
+ * - **Plant Community**:
+ *   - Configures multi-species mode and sets the number of species.
+ * 
+ * - **Soil**:
+ *   - Configures groundwater flow, soil water redistribution, and soil water evaporation.
+ * 
+ * - **Climate**:
+ *   - Configures rainfall inputs, multiple growing seasons, and growing season data usage.
+ * 
+ * - **Hydraulics**:
+ *   - Configures pre-dawn water potential mode, xylem refilling mode, xylem hysteresis, 
+ *     and cavitation fatigue in roots.
+ * 
+ * - **File Locations**:
+ *   - Sets paths for climate forcing data, growing season data, and time-step header file.
+ * 
+ * @note The function outputs the configuration status to the console for debugging purposes.
+ * 
+ * @param None
+ * @return void
+ */
 void Plant::setConfig() { // sets up model configuration
     // // Model Configurations
     // Plant Community
@@ -265,6 +295,25 @@ void Plant::setConfig() { // sets up model configuration
     std::cout << data_header_file_path << std::endl;
 }
 
+/**
+ * @brief Initializes the model variables for the Plant class.
+ * 
+ * This method is responsible for resetting and initializing all the variables
+ * used in the Plant model. It is typically called at the start of every iteration,
+ * but it should not be called on new years. The method ensures that all variables
+ * are set to their default or initial values, preparing the model for a new simulation
+ * or iteration cycle.
+ * 
+ * Key functionalities:
+ * - Resets general state variables such as `isNewYear`, `gs_yearIndex`, and `gs_inGrowSeason`.
+ * - Initializes water-related variables like `runoff`, `drainage`, and `transpiration`.
+ * - Resets arrays such as `b_fatigue` and `e_p` to zero.
+ * - Sets various flags and parameters to their default states.
+ * - Prepares iteration-specific variables for groundwater, ffc, and baga simulations.
+ * 
+ * Note:
+ * - This method should not be called on new years to avoid overwriting year-specific data.
+ */
 void Plant::initModelVars() {
     // this can be called on the start of every iteration BUT NOT ON NEW YEARS
     isNewYear = true;
@@ -332,6 +381,25 @@ void Plant::initModelVars() {
     soilevap = 0.0;
 }
 
+/**
+ * @brief Resets all member variables of the Plant class to their default values.
+ * 
+ * This function is responsible for initializing or resetting the state of the Plant object.
+ * It sets numerical variables to zero, boolean variables to false, clears containers, 
+ * and resets parameters in associated objects. Additionally, it ensures that certain 
+ * conditions are met before clearing specific data structures.
+ * 
+ * Key operations:
+ * - Resets numerical variables such as species_no, stage_id, and various iteration parameters.
+ * - Sets boolean flags like mode_predawns, hysteresis, and others to false.
+ * - Clears containers such as water, fc, and jmatrix.
+ * - Resets parameters in associated objects like carbon and xylem.
+ * - Initializes arrays like e_p to zero.
+ * 
+ * Note:
+ * - The function includes a conditional check to avoid clearing water and fc containers 
+ *   if useGSData is true and gs_yearIndex is greater than 0.
+ */
 void Plant::cleanModelVars() {
     species_no = 0;
     stage_id = 0;
@@ -375,12 +443,6 @@ void Plant::cleanModelVars() {
     ecritsystem = 0.0;
     pcritsystem = 0.0;
 
-    // for (int i = 0; i < 3; ++i) {
-    //     for (int j = 0; j < 10; ++j) {
-    //         b_fatigue[i][j] = 0.0;
-    //     }
-    // }
-
     for (int i = 0; i < CURVE_MAX; ++i) {
         e_p[i] = 0.0;
     }
@@ -398,10 +460,31 @@ void Plant::cleanModelVars() {
 
 }
 
-/* Get Van Genuchten alpha // override if provided */
-// This function obtains the Van Genuchten parameters for a given texture
-// alpha is MPa-1, instead of normal cm-1
-// n is unitless
+/**
+ * @brief Sets Van Genuchten parameters for soil layers based on soil texture.
+ *
+ * This function assigns Van Genuchten parameters (alpha, n, saturated hydraulic 
+ * conductivity, and saturated water content) to a collection of soil layers 
+ * based on the specified soil texture. If an invalid texture is provided, 
+ * the function will terminate the program with an error message.
+ *
+ * @param texture A string representing the soil texture category. 
+ *                Valid options include:
+ *                "sand", "loamy sand", "sandy loam", "loam", "silt", 
+ *                "silt loam", "sandy clay loam", "clay loam", 
+ *                "silty clay loam", "sandy clay", "silty clay", "clay".
+ * @param layers The number of soil layers to process.
+ * @param soils A vector of pointers to SoilLayer objects, representing the soil layers.
+ *
+ * @throws std::runtime_error If an invalid soil texture is provided, the program 
+ *         will terminate with an error message.
+ *
+ * @note The function modifies the rhizosphere properties of each soil layer 
+ *       in the provided vector.
+ * @note Alpha is MPa-1 instead of normal cm-1, and n is unitless
+ * @note Thetasat is unitless as well, representing volume/volume
+ *       Can be estimated via porosity at saturation (volume of water at saturation/total volume of soil)
+ */
 void get_vgparams(std::string texture, const double &layers, std::vector<SoilLayer*> &soils) {
     double a, n, soilkmax, thetasat;
     if (texture == "sand"){
@@ -464,6 +547,11 @@ void get_vgparams(std::string texture, const double &layers, std::vector<SoilLay
         n = 1.09;
         soilkmax = 204.08;
         thetasat = 0.38;
+    } else if (texture == "pofr-dbg") { // using estimate of all populations (CCR/JLA/NRV/TSZ)
+        a = 775.4012357;
+        n = 1.471392609;
+        soilkmax = 1336.724; // taken from sandy clay loam, since that is closest soil profile
+        thetasat = 0.47; // from soil tin estimates, 0.47 +/- 0.03
     } else {
         std::cout << "WARNING: Unrecoverable model failure!" << std::endl;
         std::cout << "SOURCE: Incorrect soil texture category" << std::endl;
@@ -479,6 +567,42 @@ void get_vgparams(std::string texture, const double &layers, std::vector<SoilLay
     }
 }
 
+/**
+ * @brief Initializes and calculates all parameters for the Plant model at the 
+ * start of the simulation.
+ * 
+ * This function reads input parameters from a data source, performs necessary 
+ * calculations, and sets up the initial conditions for the Plant model. It 
+ * handles parameters related to site, atmosphere, soil, stand, hydraulics, and 
+ * photosynthesis. Additionally, it calculates initial conditions and adjusts 
+ * parameters for soil and plant hydraulics.
+ * 
+ * @details
+ * - **Site Parameters**: Latitude, longitude, slope inclination, slope aspect, 
+ *   elevation.
+ * - **Atmosphere Parameters**: Atmospheric transmittance, solar noon correction, 
+ *   ambient CO2, long wave emissivity.
+ * - **Soil Parameters**: Number of soil layers, rock fraction, field capacity, 
+ *   ground water properties, soil absorptivity.
+ * - **Stand Parameters**: Leaf area index, tree height, root depth, root biomass 
+ *   distribution.
+ * - **Hydraulics**: Weibull parameters for roots, stems, and leaves, accounting 
+ *   for cavitation fatigue.
+ * - **Photosynthesis Parameters**: Light compensation point, quantum yield, 
+ *   temperature dependencies, and other photosynthetic constants.
+ * - **Initial Conditions**: Calculates conductance, resistance, and transport 
+ *   distances for soil and plant components.
+ * 
+ * @note The function also adjusts parameters for cavitation fatigue in roots 
+ * and stems based on previous years' drought stress.
+ * 
+ * @warning This function assumes that all required input parameters are 
+ * available in the data source.
+ * 
+ * @param None
+ * 
+ * @return void
+ */
 void Plant::readin() { //'inputs and calculates all parameters at the start
 
     std::cout << std::endl;
@@ -940,7 +1064,16 @@ void Plant::readin() { //'inputs and calculates all parameters at the start
     xylem.zh = 0.2 * xylem.rough; // roughness for temperature
 }
 
-/* Reset the status for every soil layer */
+/**
+ * @brief Resets the status of all soil layers in the xylem.
+ * 
+ * This function iterates through all the soil layers in the xylem and resets
+ * their status by setting the `cavitated` property to `false` and the `failure`
+ * property to `"ok"`.
+ * 
+ * @note Assumes that the `xylem.soils` array is properly initialized and has
+ *       at least `layers + 1` elements.
+ */
 void Plant::resetLayerStatus() {
     for (int i = 0; i <= layers; i++) {
         xylem.soils[i]->cavitated = false;
@@ -948,18 +1081,61 @@ void Plant::resetLayerStatus() {
     }
 }
 
+/**
+ * @brief Calculates the flow and pcrit for the plant's xylem component.
+ *
+ * This function invokes the `calc_flow` method of the `xylem` object to compute
+ * flow characteristics. It retrieves the required.
+ *
+ * @details
+ * - "p_inc" represents the pressure increment parameter.
+ * - "k_min" represents the minimum conductivity parameter.
+ *
+ * The calculated flow parameters are used to model the behavior of the plant's
+ * xylem under varying conditions.
+ */
 void Plant::componentPCrits() {
-    xylem.calc_net_flow(param.getModelParam("p_inc"), param.getModelParam("k_min"));
+    std::cout << "Calculating critical points for components" << std::endl;
+    xylem.calc_flow(param.getModelParam("p_inc"), param.getModelParam("k_min"));
 }
 
+/**
+ * @brief
+ */
+/**
+ * @brief Simulates a single timestep iteration for the plant model.
+ *
+ * This function performs a comprehensive simulation of plant processes for a given timestep.
+ * It handles initialization for new years, updates environmental parameters, calculates 
+ * photosynthesis, transpiration, and hydraulic properties, and manages soil and canopy processes.
+ *
+ * @param dd Reference to the current timestep index.
+ * @return int Returns 0 on successful completion, a positive integer for a year index reset, 
+ *         or -1 in case of failure.
+ *
+ * @details
+ * - Initializes model parameters and variables at the start of a new year or the first timestep.
+ * - Updates atmospheric CO2 concentration based on the year and input data.
+ * - Retrieves environmental parameters such as solar radiation, vapor pressure deficit (VPD),
+ *   air temperature, wind speed, and soil temperature.
+ * - Simulates soil wetness and photosynthesis processes for sun and shade layers.
+ * - Handles hydraulic processes, including soil pressure updates, canopy pressure, and water flow.
+ * - Manages soil evaporation, groundwater flow, and redistribution of soil water.
+ * - Outputs various plant and environmental metrics, including transpiration, photosynthesis,
+ *   hydraulic conductance, and failure status for each soil layer.
+ * - Handles convergence failures and retries calculations with adjusted parameters.
+ * - Resets layer failure statuses and updates critical soil water content at the end of the timestep.
+ *
+ * @note This function is computationally intensive and involves multiple nested loops and conditionals.
+ *       It also includes mechanisms to handle failures and ensure convergence of calculations.
+ */
 int Plant::modelTimestepIter(int &dd) {
-
     bool failure = false;
     int check = 0,
         reset_guess = 0,
         total = 0,
         test_count = 0;
-    std::string failspot; // used for debugging?
+    std::string failspot;
     int    timestep;
     double obssolar,
            vpd,
@@ -978,7 +1154,7 @@ int Plant::modelTimestepIter(int &dd) {
 
     if (dd == 1 || isNewYear)
     {
-        failure = 0;//'=1 for system failure at midday...terminates run
+        failure = 0;
         failspot = "no failure";
         componentPCrits();//'gets pcrits for each component
         failspot = "no failure";
@@ -1068,8 +1244,8 @@ int Plant::modelTimestepIter(int &dd) {
             gs_prevDay = jd;
             gs_inGrowSeason = true; // isInGrowSeasonSimple(); //it's a new day, so let's see if this is in the growing season or not
                                     //[/HNT]
-        } //End if// //'tod if
-    } //End if// //'dd>1 if
+        }// //'tod if
+    }// //'dd>1 if
         //[HNT] multi-year support
     else
     {
@@ -1089,13 +1265,13 @@ int Plant::modelTimestepIter(int &dd) {
     if (wind < MIN_WIND_THRESH) { //if//
         data.setColumnValue(MIN_WIND_THRESH, dd, "wind"); //'set to minimum wind
         wind = MIN_WIND_THRESH;
-    } //End if//
+    }//
     us = wind * 0.1; //'understory windspeed in m s-1
     soiltemp = data.getColumnValue("T-soil", dd); //'surface temp of soil
     if (vpd > maxvpd) { //if//
         vpd = maxvpd;
         data.setColumnValue(maxvpd * param.getModelParam("p_atm"), dd, "D-MD"); //'print out maximum vpd
-    } //End if//
+    }//
 
     xylem.leaf.lai = param.getModelParam("lai");
 
@@ -1106,7 +1282,7 @@ int Plant::modelTimestepIter(int &dd) {
     }
     else {
         night = "y"; //'too dark
-    } //End if// //'end night if
+    }// //'end night if
 
     gwflow = 0; //'re-set inflow to bottom of root zone
     drainage = 0; //'re-set drainage from bottom of root zone
@@ -1213,7 +1389,7 @@ twentyMarker:
         } //end for z
 
         goto fortyMarker; //'got as much of the composite curve as is going to happen
-    } //End if//
+    }//
     if (dd == 1 || isNewYear || night == "n") { //if//
 
         if (check >= 500) { //if// //'try once more
@@ -1227,7 +1403,7 @@ twentyMarker:
                 std::cout << "ecritsystem is zero... try resetting to ksatp/500, dd = " << dd << std::endl;
             }
             goto twentyMarker;
-        } //End if//
+        }//
 
         if (total > 500 || total < 400) { //if//
             // std::cout << "total > 500 or < 400" << std::endl;
@@ -1247,9 +1423,9 @@ twentyMarker:
                 goto fortyMarker;
             }
             goto twentyMarker; //'recalculate the composite curve
-        } //End if// //'total ok
+        }// //'total ok
 
-    } //End if// //'night <>"n" or it//'s not the first round
+    }// //'night <>"n" or it//'s not the first round
 
 fortyMarker:
 
@@ -1263,7 +1439,7 @@ fortyMarker:
                           // 'if check >= 2000 { //if// GoTo 60:
         if (refilling == false)
             updatecurves(halt); //'updates element E(P) curves as required for midday exposure for no refilling
-    } //End if// //'night <> "n", psynmax IF
+    }// //'night <> "n", psynmax IF
 
     if (soilred == true) { //if//
         soilflow(); //'gets vertical soil flow between layers in m3/m2
@@ -1273,16 +1449,16 @@ fortyMarker:
         {
             xylem.soils[z]->soilredist = 0;
         } //end for z
-    } //End if// //'soil red <> y
+    }// //'soil red <> y
     if (ground == true)
         deepflow(timestep); //'gets groundwater flow into bottom layer in m3/m2
-                    // '} //End if// //'pet <> y or n
+                    // '}// //'pet <> y or n
     if (gs_inGrowSeason && sevap == true) { //if//
         soilevaporation(soiltemp, maxvpd, vpd, airtemp, us); //'gets soil evaporation rate
     }
     else {
         soilevap = 0;
-    } //End if//
+    }//
 
     if (failure == 0 || reset_guess == 1) { //if//
                                         //Debug.Print "DOING A LOOP-8 " & dd
@@ -1303,7 +1479,7 @@ fortyMarker:
             xylem.leaf.lavpdshmd = xylem.leaf.lavpdsh[k] * patm;
             carbon.cincsh = carbon.cinsh[k];
             haltsh = k; //'halt is index of midday datum
-        } //End if// //'night<>y
+        }// //'night<>y
 
         data.setColumnValue(xylem.leaf.getPressureComp(0), dd, "P-PD"); //'the predawn
                                                                     //'SUN LAYER OUTPUT
@@ -1352,7 +1528,7 @@ fortyMarker:
         if (transpiration > 0) { //if//
             kplantold = xylem.e_p[halt] / (xylem.leaf.getPressureComp(halt) - xylem.leaf.getPressureComp(0));  //'whole plant k at midday in kg hr-1 m-2 basal area...sun value
             data.setColumnValue(kplantold, dd, "K-plant");
-        } //End if//
+        }//
         if (transpiration == 0)
             data.setColumnValue(kplantold, dd, "K-plant"); //'use most recent kplant
 
@@ -1375,7 +1551,7 @@ fortyMarker:
             data.setColumnValue(tempDouble, dd, "K-xylem"); //1 / (1 / kminleaf + 1 / kminstem + 1 / dSheet.Cells(rowD + dd, colD + k + 1 + layers)); //'total xylem k
             if (tempDouble < gs_data.getColumnValue("K-xylem", gs_yearIndex) || gs_data.getColumnValue("K-xylem", gs_yearIndex) == 0)
                 gs_data.setColumnValue(tempDouble, gs_yearIndex, "K-xylem");
-        } //End if//
+        }//
         for (int z = 1; z <= layers; z++)//z = 1 To layers
         {
             std::ostringstream oss;
@@ -1395,7 +1571,7 @@ fortyMarker:
         } //end for z
 
         //Debug.Print "DOING A LOOP-9 " & dd
-    } //End if// //'failure IF (basically...failure can//'t happen!)
+    }// //'failure IF (basically...failure can//'t happen!)
 
 
     if (dd == 1 || isNewYear) { //if// //'NOTE: must be sure that pcritsystem is computed for dd=1!!! (i.e., it//'s not computed at night)
@@ -1409,7 +1585,7 @@ fortyMarker:
         } //end for z
 
         //Debug.Print "DOING A LOOP-11 " & dd
-    } //End if//
+    }//
 
     //'now...need to reset layer failure status to midday values (not critical point)
     for (int z = 1; z <= layers; z++)//z = 0 To layers
@@ -1418,12 +1594,12 @@ fortyMarker:
             if (xylem.soils[z]->failure == "root" && xylem.soils[z]->root.getKmin() > 0) { //if//
                 xylem.soils[z]->cavitated = 0;
                 xylem.soils[z]->failure = "ok";
-            } //End if//
+            }//
             if (xylem.soils[z]->failure == "rhizosphere" && xylem.soils[z]->root.getKmin() > 0) { //if//
                 xylem.soils[z]->cavitated = 0;
                 xylem.soils[z]->failure = "ok";
-            } //End if//
-        } //End if//
+            }//
+        }//
     } //end for z
 
     if (isNewYear)
@@ -1432,6 +1608,18 @@ fortyMarker:
     return 0;
 }
 
+/**
+ * @brief Retrieves the atmospheric CO2 concentration (in ppm) for a specified year.
+ * 
+ * This function iterates through a range of years up to MAX_YEARS and checks if the 
+ * given year matches the year stored in the parameter object. If a match is found 
+ * the function returns the CO2 concentration for that year.
+ * 
+ * @param yearVal The year for which the atmospheric CO2 concentration is requested.
+ * @return double The atmospheric CO2 concentration (in ppm) for the specified year.
+ *                Returns 0.0 if no matching year is found or if the CO2 concentration
+ *                is not greater than 0.
+ */
 double Plant::getCarbonByYear(int yearVal) {
     double ca_year = 0.0;
     for (long gsC = 0; gsC <= MAX_YEARS; gsC++)
@@ -1443,6 +1631,24 @@ double Plant::getCarbonByYear(int yearVal) {
     return ca_year;
 }
 
+/**
+ * @brief Prepares the plant model for a new year by resetting variables, 
+ *        saving previous states, and reinitializing parameters.
+ * 
+ * This function performs the following steps:
+ * 1. Outputs a message indicating the start of a new year.
+ * 2. Saves the current states of the water system (ground, raining, rainEnabled).
+ * 3. Clears all model variables and deletes soil layers to avoid memory effects 
+ *    from previous runs.
+ * 4. Retrieves the previous year's mean Xylem PLC (Percent Loss of Conductivity).
+ * 5. Reads in all necessary parameters for the model again (need to optimize)
+ * 6. Resets growth season variables (e.g., day and growth season status).
+ * 7. Configures iteration details for supply curve runs, if applicable.
+ * 8. Initializes soil layer properties, such as source pressures and failure states.
+ * 
+ * @note This function is critical for ensuring the model starts with a clean 
+ *       state and accurate parameters for the new simulation year.
+ */
 void Plant::modelProgramNewYear()
 {   
     std::cout << std::endl;
@@ -1472,49 +1678,35 @@ void Plant::modelProgramNewYear()
         raining = oldraining;
         rainEnabled = oldrainEnabled;
 
-        // basically useless, iter_baga is never initialized
-        // if (iter_bagaEnable) {
-        //     param.getModelParam("ba_per_ga") = iter_baga * 0.0001;
-        //     //if we set the BA:GA { also set the LAI
-        //     xylem.leaf.lai = (param.getModelParam("leaf_per_basal") * param.getModelParam("ba_per_ga")) / treeToPhotoLAI;
-        //     std::cout << "DEBUG: set BA:GA to " << iter_baga << " m2/ha -> " << param.getModelParam("ba_per_ga") << "m2/m2. treeLAI/fotoLAI = " << treeToPhotoLAI << " and LAI set to " << lai << std::endl;
-        // } //End if
-
-    } //End if
+    }
 
     for (int k = 0; k <= layers; k++) // To layers //assign source pressures, set layer participation
     {
         xylem.soils[k]->failure = "ok";
         xylem.soils[k]->cavitated = false; //1 if out of function
-    } //Next k
-
-        //[HNT] all this is done in C now
-    if (true) { //Not useDLL {
-        componentPCrits(); //gets pcrits for each component
-
-        for (int k = 1; k <= layers; k++) {//k = 1 To layers //exclude the top layer
-            xylem.soils[k]->root.setKmin(xylem.soils[k]->root.getKmax());
-        } //Next k
-
-        xylem.stem.setKmin(xylem.stem.getKmax());
-        xylem.leaf.setKmin(xylem.leaf.getKmax());
-        kmin = param.getModelParam("ksatp");
-
-        gwflow = 0; //inflow to bottom of root zone
-        drainage = 0; //drainage from bottom of root zone
-    } //End if
-
-        //if kmaxset = False Or leafpercentset = False { dd = 0 //start with initializing row
-        //if kmaxset = True And leafpercentset = True { dd = 1 //skip initializing row
-        //dd = 0
-        //liveGraphNextUpdate = liveGraphUpdate
-
-        //cleanModelVars(); //initialize all used variables to avoid any memory effect from previous runs
-        //readin();
-        //Call loadParamsToC
-        //Call CPP_setIterationCount(iter_Counter)
+    }
 }
 
+/**
+ * @brief Determines if the given Julian day (jd) falls within the growing season.
+ * 
+ * This function checks whether the specified Julian day is within the growing season
+ * based on the growing season data (GSData) and parameters. If the growing season
+ * limits are disabled, the function always returns true.
+ * 
+ * @param jd The Julian day to check.
+ * @return true If the Julian day is within the growing season or if growing season
+ *         limits are disabled.
+ * @return false If the Julian day is outside the growing season.
+ * 
+ * @note The function uses the following conditions:
+ *       - If `useGSData` is true, it checks the growing season data for the current year index.
+ *       - The year index (`gs_yearIndex`) must be valid (0 <= gs_yearIndex < 100).
+ *       - The growing season start and end days are retrieved using `param.getGsArStart` 
+ *         and `param.getGsArEnd` respectively.
+ *       - If the Julian day falls within the start and end days, the function returns true.
+ *       - If `useGSData` is false, the function assumes the growing season is always active.
+ */
 bool Plant::isInGrowSeasonSimple(const int &jd) {
     if (useGSData)
     {
@@ -1537,6 +1729,41 @@ bool Plant::isInGrowSeasonSimple(const int &jd) {
 }
 
 //'gets predawns accounting for rain, groundwater flow, transpiration, and redistribution via soil and roots
+/**
+ * @brief Calculates and updates soil wetness and water content dynamics for a plant model.
+ * 
+ * This function simulates the water content in soil layers, including processes such as 
+ * transpiration, soil redistribution, rain infiltration, groundwater input, and runoff. 
+ * It also tracks water content changes over time and records various metrics related to 
+ * plant and soil water dynamics.
+ * 
+ * @param dd The current day of the simulation.
+ * @param timestep The time step of the simulation in hours.
+ * @param lai Leaf area index (total).
+ * @param laish Leaf area index for shaded leaves.
+ * @param laisl Leaf area index for sunlit leaves.
+ * @param laperba Leaf area per basal area.
+ * @param atree Net assimilation rate of the tree.
+ * @param cinc Internal CO2 concentration.
+ * @param ca Atmospheric CO2 concentration.
+ * 
+ * @details
+ * - Initializes soil water content at the start of the year or simulation.
+ * - Handles water redistribution between soil layers during day and night.
+ * - Simulates rain infiltration and adjusts soil water content accordingly.
+ * - Tracks groundwater input and runoff.
+ * - Updates water content metrics such as field capacity, saturation, and extraction limits.
+ * - Records transpiration, soil evaporation, and total evapotranspiration (ET).
+ * - Tracks plant hydraulic conductance (K-plant) and xylem conductance (K-xylem).
+ * - Calculates and records plant and xylem percent loss of conductivity (PLC).
+ * - Handles growing season and off-season water input/output tracking.
+ * 
+ * @note This function interacts with multiple external data structures and parameters, 
+ * including soil properties, plant parameters, and simulation data tables.
+ * 
+ * @warning Ensure that all required external data and parameters are properly initialized 
+ * before calling this function. Misconfigured inputs may lead to undefined behavior.
+ */
 void Plant::getsoilwetness(const int &dd, 
                            const int &timestep,
                            const double &lai,
@@ -1593,28 +1820,28 @@ void Plant::getsoilwetness(const int &dd,
         // store the initial water content to check how much we consume at the end
         gs_data.setColumnValue(waterold * 1000, gs_yearIndex, "initial");
         // [/HNT]
-    } //End if// //'dd=1 if
+    }// //'dd=1 if
         //'if pet = "y" Or pet = "n" { //if// //'do the original routine...doesn//'t run for PET scenario
     if ((dd > 1 && !isNewYear) || (useGSData && gs_yearIndex > 0)) { //if// //'get flows that happened during previous timestep
         for (int z = 0; z < layers; z++)//z = 0 To layers - 1 //'transpiration, root and soil redistribution
         {
-            if (night == "n") { //if// //'it//'s day, must adjust elayer for sun vs. shade weighting
+            if (night == "n") { // if it's day, must adjust elayer for sun vs. shade weighting
                 layerflow = xylem.soils[z]->root.getEComp(halt) * laisl / lai + xylem.soils[z]->root.getEComp(haltsh) * laish / lai; //'weighted flow; NOTE: elayer = 0 for layer 0
             }
             else {
                 layerflow = xylem.soils[z]->root.getEComp(halt); //'no adjustment necessary at night; NOTE: elayer = 0 for layer 0
-            } //End if// //'night if
+            }// //'night if
             layerflow = layerflow * param.getModelParam("ba_per_ga") * 1.0 / 998.2 * timestep; //'rootflow into (= negative rootflow) or out (positive flow) of layer in m3/m2 ground area
             layerflow = layerflow + xylem.soils[z]->soilredist * 1.0 / 998.2 * timestep; //'redistribution between layers (negative is inflow, positive is outflow). NOTE: xylem.soils(0)->soilredist includes soil evaporation for layer 0
             water[z] = water[z] - layerflow; //'subtracts rootflow from layer on per ground area basis
         } //for//z
         //'now do the bottom layer and potential groundwater input
-        if (night == "n") { //if// //'it//'s day, must adjust layerflow for sun vs. shade weighting
+        if (night == "n") { // if it's day, must adjust layerflow for sun vs. shade weighting
             layerflow = xylem.soils[layers]->root.getEComp(halt) * laisl / lai + xylem.soils[layers]->root.getEComp(haltsh) * laish / lai; //'weighted flow
         }
         else {
             layerflow = xylem.soils[layers]->root.getEComp(halt); //'no adjustment necessary at night
-        } //End if// //'night if
+        }// //'night if
         layerflow = layerflow * param.getModelParam("ba_per_ga") * 1 / 998.2 * timestep; //'rootflow into (= negative rootflow) or out (positive flow) of layer in m3/m2 ground area
         layerflow = layerflow + xylem.soils[layers]->soilredist * 1 / 998.2 * timestep; //'redistribution between layers (negative is inflow, positive is outflow)
                                                                             //'water(layers) = water(layers) - layerflow //'subtracts rootflow from layer on per ground area basis
@@ -1629,14 +1856,14 @@ void Plant::getsoilwetness(const int &dd,
                 else { //'just soak up all the groundwater
                     water[z] = water[z] - layerflow; //'add to bottom layer
                     layerflow = 0; //' all gone
-                } //End if// //'wetting if
+                }// //'wetting if
             } //for//z
             
             runoff = runoff - layerflow; //'add what//'s left to runoff...
         }
         else { //'groundwater is positive...bottom layer is losing water
             water[layers] = water[layers] - layerflow; //'subtract from bottom layer
-        } //End if// //'layerflow if
+        }// //'layerflow if
 
         //'now reset any exhausted layers to extraction limit
         if (water[0] <= 0)
@@ -1693,7 +1920,7 @@ void Plant::getsoilwetness(const int &dd,
                                                 //'sumrain = sumrain + rain
                     rain = 0; //'rain used up
                     drainage = 0;
-                } //End if// //'wetting up to field capacity "if"
+                }// //'wetting up to field capacity "if"
                 //}
             } //for//z
 
@@ -1715,12 +1942,12 @@ void Plant::getsoilwetness(const int &dd,
                         else { //'rain absorbed by layer
                             water[j] = water[j] + rain;
                             rain = 0; //'use up rain
-                        } //End if// //'deficit=>0 "if"
+                        }// //'deficit=>0 "if"
                     }
                     else { //'deficit<0...layer//'s saturated
                         rain = rain - deficit; //'increase rain by super-saturated amount (deficit is negative)
                         water[j] = xylem.soils[j]->rhizosphere.getThetaSat() * xylem.soils[j]->depth; //'reset to saturation
-                    } //End if// //'deficit <>0 if
+                    }// //'deficit <>0 if
                 } //for//j
 
                 runoff = runoff + rain; //'whatever is left over will run off
@@ -1728,7 +1955,7 @@ void Plant::getsoilwetness(const int &dd,
                 rain = 0; //'reset rain to zero
             }
             //'sumdrain = sumdrain + drainage //'total drainage
-        } //End if// //'rain if
+        }// //'rain if
 
         //'now check for exhausted layers
         if (water[0] <= 0)
@@ -1769,9 +1996,9 @@ void Plant::getsoilwetness(const int &dd,
             gs_data.setColumnValue(gs_data.getColumnValue("input", gs_yearIndex) + data.getColumnValue("end-total-water-input", dd), gs_yearIndex, "input");
 
             data.setColumnValue(runoff * 1000, dd, "end-runoff"); //'excess root zone water per timestep in mm
-        } //End if// //'dd>1 if
-    } //End if// //'dd>1 if
-        //'} //End if////'pet if
+        }// //'dd>1 if
+    }// //'dd>1 if
+        //'}////'pet if
     if (dd > 1 && !isNewYear) { //if//
         tempDouble = transpiration_tree * 3600 * timestep * laperba * param.getModelParam("ba_per_ga") * 0.000000018 * 1000;
         data.setColumnValue(tempDouble, dd, "end-E"); //transpiration_tree * 3600 * timestep * laperba * param.getModelParam("ba_per_ga") * 0.000000018 * 1000; //'transpiration per ground area in mm m-2 per timestop
@@ -1801,7 +2028,7 @@ void Plant::getsoilwetness(const int &dd,
                 gs_data.setColumnValue(gs_data.getColumnValue("AnetDay", gs_yearIndex) + tempDouble, gs_yearIndex, "AnetDay");
             }
         }
-    } //End if// //'dd>1 if
+    }// //'dd>1 if
 
     if (tod == 16 && !gs_doneFirstDay && gs_inGrowSeason && data.getColumnValue("K-plant", dd - 3) > 0.000000001) { //if// //'get midday k//'s for day 1
                                                                                                                       // VPD zero case -- if the stomata did not open on the first day of the GS, kplant won't have been set and will be zero... in which case, try again tomorrow
@@ -1825,7 +2052,7 @@ void Plant::getsoilwetness(const int &dd,
                                                                                                     // and record this as the FINAL water for THIS YEAR's off season -- remember that this year's off season is the PRECEDING winter
         gs_data.setColumnValue(data.getColumnValue("water-content", dd), gs_yearIndex, "final-off");
         // [/HNT]
-    } //End if// //'dd=16 if
+    }// //'dd=16 if
     
     if (gs_doneFirstDay) { //if// //'calculate plc relative to midday of day 1
         // if (iter_refK < 0.000000001) // || iter_Counter == 0 // no longer appropriate to test for iter_Counter == 0 ... may be doing a seperate stress profile that refers to a saved refK, which will have been loaded at start of modelProgramMain
@@ -1890,7 +2117,7 @@ void Plant::getsoilwetness(const int &dd,
             }
         }
         // [/HNT]
-    } //End if// //'dd>16 if
+    }// //'dd>16 if
     else if (!gs_inGrowSeason)// have NOT done first day and are NOT in growing season
     {
         // we must be in the pre-GS winter of what we called the NEXT year above... so gs_yearIndex is now that year, and we add to the off-season input for THIS year
@@ -1900,6 +2127,31 @@ void Plant::getsoilwetness(const int &dd,
     }
 }
 
+/**
+ * @brief Calculates the soil predawn water potential for each layer and updates the state of the soil layers.
+ * 
+ * This function determines the predawn water potential for each soil layer, taking into account the 
+ * participation of rooted layers and their cavitation status. It also updates the pressures in the 
+ * rhizosphere and root systems, and handles cases where layers are disconnected due to cavitation.
+ * 
+ * @param dd The index of the current day or time step for which the predawn water potential is calculated.
+ * @return int Returns 0 if the calculation is successful, or 1 if one or more layers are disconnected (failure).
+ * 
+ * @details
+ * - The function first checks the participation of each soil layer and updates their cavitation status.
+ * - For each layer, it calculates the predawn pressure based on rain or estimated via the Van Genuchten 
+ *   function if mode_predawns is disabled.
+ * - If the predawn pressure exceeds critical thresholds for the rhizosphere or root, the layer is marked as 
+ *   cavitated and disconnected.
+ * - The function computes an average predawn pressure for connected layers and assigns it to the root system.
+ * - Finally, it stores the calculated predawn pressures for each layer in the output data structure.
+ * 
+ * @note
+ * - Layer 0 is not considered for root participation.
+ * - The function uses external parameters and data columns for calculations, such as "rain" and "p_grav".
+ * - The function outputs a message to the console for each disconnected layer.
+ * 
+ */
 int Plant::getpredawns(const int &dd) // gets soil predawn water potential for each layer
 {
     double theta = 0,
@@ -1918,8 +2170,8 @@ int Plant::getpredawns(const int &dd) // gets soil predawn water potential for e
             if (xylem.soils[k]->root.getKmin() != 0) { //if// //'roots still around
                 xylem.soils[k]->failure = "ok";
                 xylem.soils[k]->cavitated = false;
-            } //End if//
-        } //End if//
+            }//
+        }//
         if (xylem.soils[k]->failure == "rhizosphere")
             xylem.soils[k]->cavitated = false; //'layer can come back to life
     } //for//k
@@ -1941,18 +2193,18 @@ int Plant::getpredawns(const int &dd) // gets soil predawn water potential for e
             if (xylem.soils[z]->predawn_pressure >= xylem.soils[z]->rhizosphere.getPcrit() && z > 0) { //if// //'only rooted layers // [HNT] >= instead of > for consistency w/ Newton Rhapson update
                 xylem.soils[z]->cavitated = true;
                 xylem.soils[z]->failure = "rhizosphere";
-            } //End if//
+            }//
             if (xylem.soils[z]->predawn_pressure >= xylem.soils[z]->root.getPcrit() && z > 0) { //if// //'only rooted layers // [HNT] >= instead of > for consistency w/ Newton Rhapson update
                 xylem.soils[z]->cavitated = true;
                 xylem.soils[z]->failure = "root";
                 xylem.soils[z]->root.setKmin(0);
-            } //End if//
+            }//
         }
         else { //'layer//'s disconnected
             std::cout << z << " is disconnected." << std::endl;
             xylem.soils[z]->predawn_pressure = xylem.soils[z]->root.getPcrit();
             xylem.soils[z]->rhizosphere.setPressure(xylem.soils[z]->root.getPcrit());
-        } //End if//
+        }//
     } //for//z
         // exit(1);
         //'now get guess of proot
@@ -1965,7 +2217,7 @@ int Plant::getpredawns(const int &dd) // gets soil predawn water potential for e
         }
         else { //'predawn is not seen by the roots
             t = t + 1;
-        } //End if//
+        }//
     } //for//k
     // failspot = "no failure";
     if (t < layers) { //if//
@@ -1985,8 +2237,35 @@ int Plant::getpredawns(const int &dd) // gets soil predawn water potential for e
     return failure;
 }
 
-void ludcmp(const int &unknowns, std::vector<std::vector<double>> &jmatrix, std::vector<double> &indx) //'does LU decomposition on the jacobian prior to solution by lubksb
-{
+/**
+ * @brief Performs LU decomposition on a given square matrix (Jacobian matrix) 
+ *        to prepare it for solving linear equations using forward and backward 
+ *        substitution.
+ * 
+ * @param unknowns The number of unknowns (size of the square matrix).
+ * @param jmatrix A reference to the square matrix (Jacobian matrix) to be 
+ *                decomposed. On output, it contains the LU decomposition of 
+ *                the original matrix.
+ * @param indx A reference to a vector that stores the permutation indices 
+ *             resulting from partial pivoting during the decomposition.
+ * 
+ * @details
+ * The function decomposes the input matrix `jmatrix` into a lower triangular 
+ * matrix (L) and an upper triangular matrix (U) such that the product of L and 
+ * U equals the original matrix. Partial pivoting is used to improve numerical 
+ * stability, and the permutation indices are stored in the `indx` vector. The 
+ * diagonal elements of L are assumed to be 1 and are not stored explicitly.
+ * 
+ * If the matrix is singular (i.e., a row is entirely zero), the function exits 
+ * early. To avoid division by zero, a small value (1E-25) is assigned to 
+ * diagonal elements that are zero.
+ * 
+ * @note The matrix indices are assumed to be 1-based as the top soil layer is 
+ *       not included, the input matrix `jmatrix` should be resized 
+ *       accordingly. The `indx` vector should also be resized to accommodate 
+ *       the number of unknowns.
+ */
+void ludcmp(const int &unknowns, std::vector<std::vector<double>> &jmatrix, std::vector<double> &indx) { //'does LU decomposition on the jacobian prior to solution by lubksb
     int imax = 0;
     double aamax = 0,
            sum = 0,
@@ -2056,8 +2335,25 @@ void ludcmp(const int &unknowns, std::vector<std::vector<double>> &jmatrix, std:
     }
 }
 
-void lubksb(const int &unknowns, std::vector<std::vector<double>> &jmatrix, std::vector<double> &func, std::vector<double> const &indx) //'solves the decomposed jacobian for delta p's
-{
+/**
+ * @brief Solves the decomposed Jacobian matrix for delta values using back substitution.
+ * 
+ * This function performs forward and backward substitution to solve a system of linear equations
+ * represented by a decomposed Jacobian matrix. It modifies the input vector `func` to contain
+ * the solution of the system.
+ * 
+ * @param unknowns The number of unknowns in the system (size of the matrix).
+ * @param jmatrix A 2D vector representing the decomposed Jacobian matrix (LU decomposition).
+ * @param func A vector representing the right-hand side of the equation. It is modified in-place
+ *             to store the solution of the system.
+ * @param indx A vector containing the permutation indices from the LU decomposition.
+ *             It is used to rearrange the rows of the matrix during substitution.
+ * 
+ * @note The input matrix `jmatrix` is assumed to be in LU-decomposed form, and the `indx` vector
+ *       must be generated from the decomposition process (e.g., using a function like `ludcmp`).
+ *       The function modifies the `func` vector in-place to store the solution.
+ */
+void lubksb(const int &unknowns, std::vector<std::vector<double>> &jmatrix, std::vector<double> &func, std::vector<double> const &indx) { //'solves the decomposed jacobian for delta p's
     int ii = 0;
     int ll = 0;
     double sum = 0;
@@ -2091,20 +2387,53 @@ void lubksb(const int &unknowns, std::vector<std::vector<double>> &jmatrix, std:
     }
 }
 
-int Plant::newtonrhapson(const int &dd, const double &p_inc, const double &e) //returns rhizosphere pressures and root pressure, pr, as function of pd's and e
-{
-    // Now done in readin()
-    // /* On first iteration, initialize rows and cols of jacobian matrix */
-    // if (dd == 1) {
-    //     for (int k = 0; k < unknowns; k++) {
-    //         std::vector<double> temp;
-    //         for (int j = 0; j < unknowns; j++)
-    //             temp.push_back(0);
-    //         jmatrix.push_back(temp);
-    //     }
-    // }
-
-    //'prinitial = pr //record the original guess
+/**
+ * @brief Implements the Newton-Raphson method to calculate rhizosphere pressures 
+ *        and root pressure as a function of predawn pressures and transpiration rate.
+ * 
+ * If root and rhizosphere components are partitioned into N parallel 
+ * paths that drain given a known P_soil, there are then N + 1 unknown 
+ * pressures:
+ * 
+ * E_{i(rhizosphere)} - E_{i(root)} = 0, root surface pressure
+ * 
+ * \sum{E_{i(root)}} - E = 0, root crown pressure
+ * 
+ * This is solved via multidimensional Newton-Raphson.
+ * 
+ * @param dd The day index or identifier for the current simulation step.
+ * @param p_inc Incremental pressure step used in flow calculations.
+ * @param e Transpiration rate or water demand.
+ * @return int The number of restarts required for convergence or failure.
+ * 
+ * This function iteratively solves for the pressures in the rhizosphere and root 
+ * using the Newton-Raphson method. It adjusts guesses for pressures and recalculates 
+ * flows and derivatives until convergence is achieved or a maximum number of retries 
+ * is reached. The function also handles cavitation events and tracks failures.
+ * 
+ * Key steps:
+ * - Initializes or resets pressure guesses.
+ * - Iteratively updates pressures using the Jacobian matrix and flow conservation equations.
+ * - Detects cavitation in soil layers and adjusts calculations accordingly.
+ * - Tracks convergence thresholds and restarts the process if necessary.
+ * - Updates failure statistics in case of non-convergence.
+ * 
+ * Convergence criteria:
+ * - The threshold of the flow conservation equations must be below 0.02.
+ * - The maximum number of retries is limited to 500.
+ * 
+ * Failure handling:
+ * - If convergence fails, the function logs failure statistics and resets the system state.
+ * - Cavitated layers are marked as non-functional and excluded from further calculations.
+ * 
+ * Preconditions:
+ * - The xylem and soil layers must be properly initialized with valid pressure and flow properties.
+ * 
+ * Postconditions:
+ * - The pressures in the rhizosphere and root are updated to steady-state values.
+ * - Cavitated layers are identified and marked.
+ */
+int Plant::newtonrhapson(const int &dd, const double &p_inc, const double &e) { //returns rhizosphere pressures and root pressure, pr, as function of pd's and e
     bool reset_guess = false; //tracks pr estimate
     int heck = 0; //restart loop counter
     int check = 0;
@@ -2352,6 +2681,33 @@ int Plant::newtonrhapson(const int &dd, const double &p_inc, const double &e) //
     return check;
 }
 
+/**
+ * @brief Computes the composite E(P) curve and element conductances for the plant.
+ * 
+ * This function calculates the flow and conductance for each soil layer, root, stem, 
+ * and leaf components of the plant based on the given parameters. It also handles 
+ * scenarios such as cavitation, refilling, and failure of root or rhizosphere elements.
+ * The results are stored in the respective components of the plant model.
+ * 
+ * @param e The total flow rate (E) for the plant.
+ * @param p The current pressure index.
+ * @param total Reference to an integer where the total pressure index will be stored.
+ * @return int Returns 1 if the leaf pressure compensation does not change between 
+ *         consecutive pressure indices, otherwise returns 0.
+ * 
+ * @details
+ * - For each soil layer, the function calculates the flow through the root and 
+ *   updates the root and rhizosphere conductances.
+ * - Handles cavitation and refilling scenarios for soil layers.
+ * - Updates the pressure and conductance for the stem and leaf components.
+ * - Computes the whole plant conductance and stores the results in the plant model.
+ * - If the flow rate (e) is zero, the function handles conductance based on whether 
+ *   refilling is enabled or not.
+ * - Updates the critical pressure and flow rate for the system.
+ * 
+ * @note The function assumes that the plant model and its components are properly 
+ *       initialized before calling this function.
+ */
 int Plant::compositeCurve(const double &e, const int &p, int &total) //'stores composite E(P)curve and the element conductances
 {
     double p1 = 0,
@@ -2378,23 +2734,23 @@ int Plant::compositeCurve(const double &e, const int &p, int &total) //'stores c
                 if (refilling == true) { //if// //'for refilling, starting point is always weibull
                     x = xylem.soils[z]->predawn_pressure;
                     xylem.soils[z]->root.setKComp(p, xylem.soils[z]->root.wb(x));
-                } //End if//
+                }//
                 if (refilling == false)
                     xylem.soils[z]->root.setKComp(p, xylem.soils[z]->root.getKmin());
-            } //End if//
-        } //End if//
+            }//
+        }//
         if (xylem.soils[z]->cavitated == true) { //if//
             xylem.soils[z]->root.setEComp(p, 0); //'no flow
             if (xylem.soils[z]->failure == "root") { //if// //'root element has failed
                 xylem.soils[z]->root.setKComp(p, 0); //'total cavitation in root
                 xylem.soils[z]->rhizosphere.setPressureComp(p, xylem.soils[z]->predawn_pressure); //'rhizosphere pressure returns to the predawn value
-            } //End if//
+            }//
             if (xylem.soils[z]->failure == "rhizosphere") { //if// //'rhizosphere element has failed
                 x = xylem.soils[1]->root.getPressure();
                 xylem.soils[z]->root.setKComp(p, xylem.soils[z]->root.wb(x)); //'root element conductance = instantaneous conductance from weibull curve at pr
                 xylem.soils[z]->rhizosphere.setPressureComp(p, xylem.soils[z]->rhizosphere.getPcrit());
-            } //End if//
-        } //End if//
+            }//
+        }//
     } //for//z
     xylem.root_pressure[p] = xylem.soils[1]->root.getPressure();
     xylem.stem.setPressureComp(p, xylem.stem.getPressure());
@@ -2410,14 +2766,14 @@ int Plant::compositeCurve(const double &e, const int &p, int &total) //'stores c
             xylem.leaf.setKComp(p, xylem.leaf.getKmin()); //'leaf element conductance
             xylem.stem.setKComp(p, xylem.stem.getKmin()); //'stem element conductance subtracting extra gravity drop
             xylem.k[p] = this->kmin; //'whole plant k, subtracting extra gravity drop
-        } //End if//
+        }//
         if (refilling == true) { //if//
             xylem.leaf.setKComp(p, xylem.leaf.wb(xylem.leaf.getPressure()));
             xylem.stem.setKComp(p, xylem.stem.wb(xylem.stem.getPressure())); //'stem element conductance subtracting extra gravity drop
             //'kplant[p]=??? ignore kplant setting for e=0...probably not important
-        } //End if//
+        }//
         //'dedp[p] = kminplant
-    } //End if//
+    }//
     xylem.e_p[p] = e; //'total flow
     if (p > 0) { //if//
         if (xylem.leaf.getPressureComp(p) - xylem.leaf.getPressureComp(p - 1) == 0) { //if//
@@ -2426,8 +2782,8 @@ int Plant::compositeCurve(const double &e, const int &p, int &total) //'stores c
         // else { // These are never used...
         //     dedp[p] = einc / (pleaf[p] - pleaf[p - 1]); //'dedp=instantaneous K of system
         //     dedpf[p] = dedp[p] / dedp[1]; //'fractional canopy conductance
-        // } //End if//
-    } //End if//
+        // }//
+    }//
     pcritsystem = xylem.leaf.getPressure();
     ecritsystem = e;
     total = p;
@@ -2435,6 +2791,52 @@ int Plant::compositeCurve(const double &e, const int &p, int &total) //'stores c
     return test;
 }
 
+/**
+ * @brief Calculates radiative terms for energy balance and assimilation in a 
+ * plant canopy.
+ * 
+ * This function computes various solar radiation and energy balance parameters, 
+ * including solar declination, zenith angle, azimuth angle, beam and diffuse 
+ * radiation, and their effects on leaf area index (LAI), photosynthetically 
+ * active radiation (PAR), and near-infrared (NIR) radiation. It also calculates 
+ * longwave irradiance from the sky and ground.
+ * 
+ * @param dd         Day of the year (integer).
+ * @param jd         Julian day (integer).
+ * @param obssolar   Observed solar radiation on the horizontal surface (W/m²).
+ * @param maxvpd     Maximum vapor pressure deficit (kPa).
+ * @param airtemp    Air temperature (°C).
+ * @param vpd        Vapor pressure deficit (kPa).
+ * @param lai        Canopy leaf area index (input).
+ * @param laisl      Sunlit leaf area index (output).
+ * @param laish      Shaded leaf area index (output).
+ * @param qsl        Average PPFD incident on sunlit leaves (µmol m⁻² s⁻¹) 
+ *                   (output).
+ * @param qsh        Average PPFD incident on shaded leaves (µmol m⁻² s⁻¹) 
+ *                   (output).
+ * @param ssun       Total solar radiation incident on sunlit leaves (W/m²) 
+ *                   (output).
+ * @param sshade     Total solar radiation incident on shaded leaves (W/m²) 
+ *                   (output).
+ * @param sref       Reflected solar radiation (W/m²) (output).
+ * @param la         Longwave irradiance from the clear sky (W/m²) (output).
+ * @param lg         Longwave irradiance from the ground (W/m²) (output).
+ * 
+ * @details 
+ * The function uses various atmospheric and geometric parameters to calculate 
+ * solar radiation components and their interactions with the plant canopy. It 
+ * accounts for factors such as solar declination, zenith angle, azimuth angle, 
+ * atmospheric transmittance, and cloud cover. The calculations include:
+ * - Direct beam and diffuse radiation.
+ * - Extinction coefficients for beam and diffuse radiation.
+ * - Partitioning of radiation into sunlit and shaded leaf areas.
+ * - Photosynthetically active radiation (PAR) and near-infrared (NIR) 
+ *   radiation.
+ * - Longwave radiation from the sky and ground.
+ * 
+ * The results are used for energy balance and carbon assimilation modeling in 
+ * plant canopies.
+ */
 void Plant::solarcalc(const int &dd,
                       const int &jd,
                       const double &obssolar,
@@ -2684,6 +3086,45 @@ void Plant::solarcalc(const int &dd,
                                                     //'Cells(14 + i, 17) = lg
 }
 
+/**
+ * @brief Calculates the canopy pressure and related parameters for a plant.
+ *        This is the main gain-risk profit-maxmization algorithm.
+ *
+ * This function computes the midday pressures, transpiration rates, and other
+ * physiological parameters for both sunlit and shaded layers of a plant canopy.
+ * It uses historical and virgin curves to determine the optimal midday pressures
+ * and associated gas exchange values. The function also handles critical system
+ * states and updates historical data accordingly. Additionally, it computes the
+ * optimal plant pressure using the gain-risk algorithm, optimizing profit with
+ * respect to cavitation risk and assimilation gain.
+ *
+ * @param dd The current day index for data retrieval.
+ * @param total The total number of iterations or layers to process.
+ * @param transpiration Reference to store the transpiration rate for the sunlit layer.
+ * @param transpirationsh Reference to store the transpiration rate for the shaded layer.
+ * @param md Reference to store the midday pressure for the sunlit layer.
+ * @param mdsh Reference to store the midday pressure for the shaded layer.
+ *
+ * @details
+ * - The function retrieves environmental parameters such as vapor pressure deficit (VPD),
+ *   air temperature, and wind speed from the data object.
+ * - It calculates the virgin risk and gain curves for both sunlit and shaded layers,
+ *   ensuring monotonicity and avoiding negative values.
+ * - The function determines the midday pressures by maximizing the profit curve
+ *   (difference between revenue and cost) using the gain-risk algorithm.
+ * - If the system is critical or fails to find a peak in the profit curve, it resets
+ *   midday pressures to predawn values.
+ * - Historical data is restored at the end of the function, and if refilling is enabled,
+ *   minimum conductance values are recorded.
+ *
+ * @note
+ * - The function uses a Newton-Raphson solver for pressure calculations.
+ * - It includes safeguards to handle system failures and ensure monotonicity in
+ *   the calculated curves.
+ * - Debugging messages are included to identify termination conditions.
+ *
+ * @throws std::runtime_error If critical system failure occurs.
+ */
 void Plant::canopypressure(const int &dd,
                            const int &total,
                            double &transpiration,
@@ -2730,11 +3171,11 @@ void Plant::canopypressure(const int &dd,
     if (wind < MIN_WIND_THRESH) { //if//
         data.setColumnValue(MIN_WIND_THRESH, dd, "wind"); //'set to minimum wind
         wind = MIN_WIND_THRESH;
-    } //End if//
+    }//
     if (vpd > maxvpd) { //if//
         vpd = maxvpd;
         data.setColumnValue(maxvpd * param.getModelParam("p_atm"), dd, "D-MD"); //'print out maximum vpd
-    } //End if//
+    }//
 
     //computes carbon-based middays; pressures and cost curve from virgin supply function, gas exchange from historical values
     //store history, get MD and cost function from virgin curve
@@ -2742,9 +3183,7 @@ void Plant::canopypressure(const int &dd,
     {
 
         storehistory(); //stores xylem element curves and failure status, resets layers to full functioning
-        //rootcurves(); //erases history for md solution
-        //stemcurve();
-        //leafcurve();
+
         sum = 0;
         t = 0;
         for (int k = 1; k <= layers; k++) //assign source pressures, set layer participation
@@ -3095,6 +3534,34 @@ void Plant::canopypressure(const int &dd,
     }
 }
 
+/**
+ * @brief Updates the hydraulic conductivity curves for the plant's root, stem, 
+ *        and leaf components.
+ * 
+ * This function recalculates the element E(P) curves for the plant's hydraulic 
+ * system, ensuring that the hydraulic conductivity (K) values do not fall below 
+ * their minimum thresholds (Kmin). If the conductivity is below the threshold, 
+ * the function back-calculates the corresponding pressure (P) and updates the 
+ * E(P) and K(P) curves accordingly.
+ * 
+ * @param halt An integer reference representing the current time step or index 
+ *             for which the hydraulic conductivity and pressure values are 
+ *             being updated.
+ * 
+ * @details
+ * - The function iterates through all soil layers and checks the root 
+ *   component's hydraulic conductivity. If the conductivity is below the 
+ *   minimum threshold, it updates the Kmin value and recalculates the E(P) and 
+ *   K(P) curves for the root.
+ * - Similar checks and updates are performed for the stem and leaf components 
+ *   of the plant.
+ * - Numerical instabilities are accounted for by ensuring that the difference 
+ *   between Kmin and the current conductivity is greater than a small threshold 
+ *   (1e-9) before making updates.
+ * - The pressure increment (pinc) is used to calculate the pressure datum and 
+ *   back-calculate the E(P) values.
+ * 
+ */
 void Plant::updatecurves(const int &halt) //'resets element E(P) curves
 {
 
@@ -3163,7 +3630,7 @@ void Plant::soilflow() //'gets flow out of each layer via soil, not including th
             else { //'flow is into layer z(negative)
                 p1 = next_sl->predawn_pressure;
                 pend = sl->predawn_pressure;
-            } //End if//
+            }//
             
             e = 0; //'flow integral
             do
@@ -3179,8 +3646,8 @@ void Plant::soilflow() //'gets flow out of each layer via soil, not including th
             }
             else { //'flow is into layer z(negative)
                 sl->flow = -e;
-            } //End if//
-        } //End if//
+            }//
+        }//
         sl->rhizosphere.setKmax(store);
     } //for//z
     
@@ -3193,6 +3660,29 @@ void Plant::soilflow() //'gets flow out of each layer via soil, not including th
     } //for//z
 }
 
+/**
+ * @brief Calculates the flow of water into or out of the lowermost soil layer.
+ *
+ * This function determines the net flow of water into or out of the bottom soil layer
+ * (groundwater flow or drainage) based on the predawn pressure and groundwater pressure.
+ * It integrates the flow over a pressure range and updates the respective flow variables.
+ *
+ * @param timestep The time step for the simulation, used to scale the flow values.
+ *
+ * The function performs the following steps:
+ * - Stores the current rhizosphere maximum conductivity (Kmax).
+ * - Resets the rhizosphere Kmax based on the vertical soil conductivity and distance to groundwater.
+ * - Determines whether groundwater flows into the bottom layer (negative flow) or out of it (positive flow).
+ * - Integrates the flow over the pressure range using small increments.
+ * - Updates the groundwater flow or drainage totals in mm per square meter of ground area per time step.
+ * - Restores the original rhizosphere Kmax.
+ * - Updates the net flow into the lowermost soil layer.
+ *
+ * Variables:
+ * - `gwflow`: Tracks the total groundwater flow into the bottom layer.
+ * - `drainage`: Tracks the total drainage out of the bottom layer.
+ * - `soilredist`: Tracks the net flow into the lowermost soil layer.
+ */
 void Plant::deepflow(const double &timestep) //'gets flow into/out of the lowermost layer
 {
     int z = layers; //'just the bottom layer
@@ -3232,7 +3722,7 @@ void Plant::deepflow(const double &timestep) //'gets flow into/out of the lowerm
         //Loop Until p2 >= pend
         groundflow = e; //'positive flow (out of bottom layer)
         drainage = drainage + groundflow * 1 / 998.2 * timestep * 1000; //'drainage totals in mm m-2 ground area per time step
-    } //End if//
+    }//
     //'reset rhizosphere kmaxrh (though i don//'t THINK it//'s used again?)
     sl->rhizosphere.setKmax(store);
     //'now calculate net flow into lowermost layer
@@ -3240,6 +3730,32 @@ void Plant::deepflow(const double &timestep) //'gets flow into/out of the lowerm
 }
 
 /* Should move this into the soils.h file */
+/**
+ * @brief Calculates soil evaporation based on environmental and soil parameters.
+ *
+ * This function computes the potential and actual soil evaporation rates using
+ * various environmental inputs such as soil temperature, vapor pressure deficit,
+ * air temperature, and wind speed. It also adjusts the evaporation rate based on
+ * relative humidity, soil surface water potential, and basal area reduction.
+ *
+ * @param soiltemp The soil temperature in degrees Celsius.
+ * @param maxvpd The maximum vapor pressure deficit (VPD) in kPa.
+ * @param vpd The current vapor pressure deficit (VPD) in kPa.
+ * @param airtemp The air temperature in degrees Celsius.
+ * @param us The wind speed in m/s.
+ *
+ * @details
+ * - The function calculates the long-wave emissivity of the soil and the thermal
+ *   emissivity from the bottom of the canopy.
+ * - It computes the aerodynamic conductance for heat and vapor transfer.
+ * - The potential soil evaporation rate is determined based on energy balance.
+ * - The actual soil evaporation rate is adjusted using relative humidity and
+ *   soil surface water potential.
+ * - Negative evaporation rates are set to zero.
+ * - The evaporation rate is reduced based on basal area and converted to
+ *   kilograms per square meter per hour.
+ * - The evaporative loss is added to the soil redistribution for the top soil layer.
+ */
 void Plant::soilevaporation(const double &soiltemp,
                             const double &maxvpd,
                             const double &vpd,
@@ -3263,7 +3779,7 @@ void Plant::soilevaporation(const double &soiltemp,
     }
     else {
         soilevap = soilep * (rhs - rha) / (1 - rha); //'campbell 1985, eqn 9.14; actual soil evaporation rate in moles m-2s-1
-    } //End if//
+    }//
     if (soilevap < 0)
         soilevap = 0; //'don//'t let it go negative
     soilevap = soilevap * (1 - param.getModelParam("ba_per_ga")); //'reduce for basal area
@@ -3271,6 +3787,18 @@ void Plant::soilevaporation(const double &soiltemp,
     xylem.soils[0]->soilredist = xylem.soils[0]->soilredist + soilevap; //'add evaporative loss to redistribution for top layer
 }
 
+/**
+ * @brief Stores historical element e(P) curves and updates soil states.
+ * 
+ * This function iterates through all soil layers and performs the following:
+ * - Stores historical curves for the root system in each soil layer and switches to virgin curves.
+ * - Saves the current cavitation and failure states of each soil layer.
+ * - Resets the cavitation state for each soil layer.
+ * - Checks if the failure state is due to the root and if the minimum hydraulic conductivity (Kmin) is zero,
+ *   in which case the cavitation state is set to true.
+ * 
+ * Additionally, it stores the transpiration curves for the stem and leaf components and switches them to virgin curves.
+ */
 void Plant::storehistory() //'stores historical element e(P) curves
 {
     for (int z = 1; z <= layers; z++)
@@ -3288,6 +3816,22 @@ void Plant::storehistory() //'stores historical element e(P) curves
     xylem.leaf.storeTranspirationCurveAndUseVirgin();
 }
 
+/**
+ * @brief Restores the historical element e(P) curves for the plant.
+ * 
+ * This function iterates through all soil layers associated with the plant's xylem
+ * and restores their historical curves. It also updates the cavitation and failure
+ * states of the soil layers to their historical values. Additionally, it restores
+ * the transpiration curves for the stem and leaf components of the xylem.
+ * 
+ * @details
+ * - For each soil layer in the xylem:
+ *   - Restores the historical root curves using `restoreCurves()`.
+ *   - Updates the `cavitated` state to the historical `cavitated_t` value.
+ *   - Updates the `failure` state to the historical `failure_t` value.
+ * - Restores the transpiration curves for the stem and leaf using their respective
+ *   `restoreTranspirationCurve()` methods.
+ */
 void Plant::gethistory() //'restores historical element e(P) curves
 {
     for (int z = 1; z <= layers; z++)

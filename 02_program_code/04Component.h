@@ -30,11 +30,8 @@ class Component {
 
         double  b_wb = 0,           // b for weibull
                 c_wb = 0,           // c for weibull
-                res_percent = 0,    // percent resistances at ksat
-                res_wb = 0,         // weibull resistance, 1/cond_wb
-                cond_wb = 0,        // weibull conductance, 1/res_wb           
+                res_percent = 0,    // percent resistance at ksat        
                 k_max = 0,          // kmax, conductance per basal area
-                                // ksat used interchangably
                 p_crit = 0,         // critical pressure, of VC
                 k_min = 0,
                 pressure = 0;       // downstream pressure used in composite calculations
@@ -56,8 +53,6 @@ class Component {
         double getBwb();
         double getCwb();
         double getResPercent();
-        double getResWb();
-        double getCondWb();
         double getKmax();
         double getPcrit();
         double getKmin();
@@ -76,8 +71,6 @@ class Component {
         void setBwb(double value);
         void setCwb(double value);
         void setResPercent(double value);
-        void setResWb(double value);
-        void setCondWb(double value);
         void setKmax(double value);
         void setPcrit(double value);
         void setKmin(double value);
@@ -107,37 +100,8 @@ class Component {
 
         /* Clean parameters */
         virtual void cleanParameters();
-
-        /* 
-
-            Calculates hydraulic conductance of component, via a weibull function.
-
-            Inputs:
-                - Maximum flow rate per pressure drop: K_max
-                - Negative sap pressure (-MPa): P
-                - Curve shift: b_wb
-                - Shape: c_wb
-                    Exponential corresponds to c <= 1, sigmoidal has c > 1
-
-            Outputs:
-                - Hydraulic conductance of component: k
-
-        */
-        double wb(const double &pressure);
-
-        /*
         
-            Calculates steady-state flow rate, E_i(P), for a component
-
-            E_i = \int_{P_up}^{P_down}{k(P)_i}dP
-
-            Inputs:
-                - p_inc: Increment for pressure in Reimann integration
-                - k_min: Minimum conductivity amount
-
-            Outputs:
-                - Steady-state flow rate: e_p
-        */ 
+        double wb(const double &pressure);
         void calc_flow_rate(const double &p_inc, const double &k_min, bool virgin=false);
         void trapzd(const double &p1, const double &p2, double &s, const int &t, int &it);
         void virtual qtrap(double &p1, double &p2, double &s);

@@ -1,6 +1,38 @@
 #include "07Leaf.h"
 
-//'gets sun layer leaf temp and leaf-to-air vpd from E, Campbell and Norman book
+/**
+ * @brief Calculates leaf temperature and leaf-to-air vapor pressure deficit (VPD).
+ *
+ * This function computes the leaf temperature and leaf-to-air vapor pressure deficit
+ * based on various environmental and plant parameters. It uses energy balance equations
+ * and other physiological relationships to determine these values.
+ *
+ * @param p Index of the plant or leaf for which calculations are performed.
+ * @param airtemp Ambient air temperature (in degrees Celsius).
+ * @param eplant Array of plant transpiration rates (in mol m^-2 s^-1).
+ * @param vpd Vapor pressure deficit of the air (in kPa).
+ * @param wind Wind speed (in m s^-1).
+ * @param laperba Leaf area per unit ground area (dimensionless).
+ * @param leafwidth Width of the leaf (in meters).
+ * @param patm Atmospheric pressure (in kPa).
+ *
+ * @details
+ * - The function calculates the total absorbed radiation, heat of vaporization,
+ *   radiative conductance, and heat conductance.
+ * - It computes the energy balance to determine the leaf temperature.
+ * - The leaf-to-air vapor pressure deficit (lavpd) is calculated based on the
+ *   saturated mole fraction of vapor in air and the vapor pressure deficit.
+ * - Negative values of lavpd are set to zero to ensure physical consistency.
+ *
+ * @note
+ * - The energy balance assumes a two-sided leaf.
+ * - Constants such as emissivity and Stefan-Boltzmann constant (SBC) are used
+ *   in the calculations.
+ * - The function modifies the `eplantl`, `leaftemp`, and `lavpd` arrays for the
+ *   given index `p`.
+ * - This must be called before tempShade, as tempShade will the convert eplantlp 
+ *   into mmol m-2 s-1.
+ */
 void LeafComponent::temp(const int p,
                          const double &airtemp,
                          const double eplant[],
@@ -22,11 +54,28 @@ void LeafComponent::temp(const int p,
     lavpd[p] = (101.3 / patm) * (-0.0043 + 0.01 * exp(0.0511 * leaftemp[p])) - lavpd[p] + vpd; //'leaf-to-air vpd
     if (lavpd[p] < 0)
         lavpd[p] = 0; //'don//'t allow negative lavpd
-                    //'eplantl[p] = eplantl[p] * 1000 //'convert to mmol m-2 s-1
-    // std::cout << lavpd[p] << std::endl;
 }
 
-//'gets shade layer leaf temp and leaf-to-air vpd from E, Campbell and Norman book
+/**
+ * @brief Calculates the temperature and vapor pressure deficit (VPD) for shaded leaves.
+ *
+ * This function computes the leaf temperature and leaf-to-air vapor pressure deficit (VPD)
+ * for shaded leaves based on absorbed radiation, air temperature, atmospheric pressure,
+ * and vapor pressure deficit. It also ensures that the calculated VPD is non-negative.
+ *
+ * @param p Index of the plant or leaf for which the calculations are performed.
+ * @param airtemp Air temperature in degrees Celsius.
+ * @param patm Atmospheric pressure in kPa.
+ * @param vpd Vapor pressure deficit in kPa.
+ *
+ * The function performs the following calculations:
+ * - Computes the total absorbed radiation for shaded leaves.
+ * - Calculates the numerator and denominator for the energy balance equation.
+ * - Determines the leaf temperature for shaded leaves.
+ * - Computes the saturated mole fraction of vapor in air and the leaf-to-air VPD.
+ * - Ensures that the leaf-to-air VPD is non-negative.
+ * - Converts the transpiration rate to mmol m⁻² s⁻¹.
+ */
 void LeafComponent::tempShade(const int &p,
                               const double &airtemp,
                               const double &patm,
@@ -47,7 +96,39 @@ void LeafComponent::tempShade(const int &p,
     eplantl[p] = eplantl[p] * 1000; //'convert to mmol m-2 s-1
 }
 
- //'gets virgin sun layer leaf temp and leaf-to-air vpd from E, Campbell and Norman book
+ /**
+ * @brief Calculates virgin leaf temperature and leaf-to-air vapor pressure deficit (VPD).
+ *
+ * This function computes the midday leaf temperature and leaf-to-air vapor pressure 
+ * deficit based on various environmental and plant parameters. It uses energy balance 
+ * equations and other physiological relationships to determine these values.
+ *
+ * @param p Index of the plant or leaf for which calculations are performed.
+ * @param airtemp Ambient air temperature (in degrees Celsius).
+ * @param eplant Array of plant transpiration rates (in mol m^-2 s^-1).
+ * @param vpd Vapor pressure deficit of the air (in kPa).
+ * @param wind Wind speed (in m s^-1).
+ * @param laperba Leaf area per unit ground area (dimensionless).
+ * @param leafwidth Width of the leaf (in meters).
+ * @param patm Atmospheric pressure (in kPa).
+ *
+ * @details
+ * - The function calculates the total absorbed radiation, heat of vaporization,
+ *   radiative conductance, and heat conductance.
+ * - It computes the energy balance to determine the leaf temperature.
+ * - The leaf-to-air vapor pressure deficit (lavpd) is calculated based on the
+ *   saturated mole fraction of vapor in air and the vapor pressure deficit.
+ * - Negative values of lavpd are set to zero to ensure physical consistency.
+ *
+ * @note
+ * - The energy balance assumes a two-sided leaf.
+ * - Constants such as emissivity and Stefan-Boltzmann constant (SBC) are used
+ *   in the calculations.
+ * - The function modifies the `emd`, `leaftmd`, and `lavpdmd` arrays for the
+ *   given index `p`.
+ * - This must be called before tempShade, as tempShade will the convert eplantlp 
+ *   into mmol m-2 s-1.
+ */
 void LeafComponent::tempMd(const int &p,
                            const double &e,
                            const double &airtemp,
@@ -69,10 +150,30 @@ void LeafComponent::tempMd(const int &p,
     lavpdmd = (101.3 / patm) * (-0.0043 + 0.01 * exp(0.0511 * leaftmd)) - lavpdmd + vpd; //'leaf-to-air vpd
     if (lavpdmd < 0)
         lavpdmd = 0; //'don//'t allow negative lavpd
-                    //'eplantl[p] = eplantl[p] * 1000 //'convert to mmol m-2 s-1
 }
 
-//'gets virgin sun layer leaf temp and leaf-to-air vpd from E, Campbell and Norman book
+/**
+ * @brief Calculates the virgin temperature and vapor pressure deficit (VPD) for 
+ * shaded leaves.
+ *
+ * This function computes the midday leaf temperature and leaf-to-air vapor pressure 
+ * deficit (VPD) for shaded leaves based on absorbed radiation, air temperature, 
+ * atmospheric pressure, and vapor pressure deficit. It also ensures that the 
+ * calculated VPD is non-negative.
+ *
+ * @param p Index of the plant or leaf for which the calculations are performed.
+ * @param airtemp Air temperature in degrees Celsius.
+ * @param patm Atmospheric pressure in kPa.
+ * @param vpd Vapor pressure deficit in kPa.
+ *
+ * The function performs the following calculations:
+ * - Computes the total absorbed radiation for shaded leaves.
+ * - Calculates the numerator and denominator for the energy balance equation.
+ * - Determines the leaf temperature for shaded leaves.
+ * - Computes the saturated mole fraction of vapor in air and the leaf-to-air VPD.
+ * - Ensures that the leaf-to-air VPD is non-negative.
+ * - Converts the transpiration rate to mmol m⁻² s⁻¹.
+ */
 void LeafComponent::tempShadeMd(const int &p,
                            const double &e,
                            const double &airtemp,

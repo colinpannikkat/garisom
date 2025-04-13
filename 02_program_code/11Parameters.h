@@ -31,14 +31,6 @@ class Parameters {
         /* Saved weibull params */
         double stem_b_wb[MAX_YEARS];
         double root_b_wb[MAX_YEARS];
-
-        // /* Soil table and transport distances */
-        // // std::vector<std::vector<double>> soil_layers_table; // unneeded?
-        // std::vector<double> layer_depth;    // lower depth of each layer converted to m
-        // std::vector<double> vert_distance;
-        // std::vector<double> depth;
-        // std::vector<double> radius;
-        // std::vector<double> length;
     
     public:
 
@@ -66,21 +58,6 @@ class Parameters {
 
         double &getRootBWb(int index);
         void setRootBWb(int index, double value);
-
-        // double& getLayerDepth(int index);
-        // void setLayerDepth(int index, double value);
-
-        // double& getVertDistance(int index);
-        // void setVertDistance(int index, double value);
-
-        // double& getDepth(int index);
-        // void setDepth(int index, double value);
-
-        // double& getRadius(int index);
-        // void setRadius(int index, double value);
-
-        // double& getLength(int index);
-        // void setLength(int index, double value);
 };
 
 #endif

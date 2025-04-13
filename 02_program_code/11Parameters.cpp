@@ -1,17 +1,12 @@
 #include "11Parameters.h"
 
 Parameters::Parameters() {
-
     /* Reserve some initial capacity for vectors to avoid frequent reallocations */
     gs_ar_year.reserve(100);
     gs_ar_start.reserve(100);
     gs_ar_end.reserve(100);
     gs_ar_ppm.reserve(100);
-    // layer_depth.reserve(100);
-    // vert_distance.reserve(100);
-    // depth.reserve(100);
-    // radius.reserve(100);
-    // length.reserve(100);
+
 }
 
 double& Parameters::operator()(const std::string &param_name) {

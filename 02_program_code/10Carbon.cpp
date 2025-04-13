@@ -1,6 +1,51 @@
 #include "10Carbon.h"
 
- //'gets assimilation for sun leaves
+/**
+ * @brief Simulates the carbon assimilation process in plants, calculating photosynthetic rates
+ *        and related parameters based on environmental and physiological inputs, following
+ *        the approach described by Medlyn et al. (2002).
+ *
+ * @param p Index of the current plant or leaf being processed.
+ * @param gmax Maximum stomatal conductance (mmol m⁻² s⁻¹).
+ * @param qmax Maximum quantum yield of photosystem II.
+ * @param comp25 CO₂ compensation point at 25°C (µmol mol⁻¹).
+ * @param thetac Curvature parameter for the photosynthetic response.
+ * @param vmax25 Maximum carboxylation rate of Rubisco at 25°C (µmol m⁻² s⁻¹).
+ * @param jmax25 Maximum electron transport rate at 25°C (µmol m⁻² s⁻¹).
+ * @param kc25 Michaelis-Menten constant for CO₂ at 25°C (µmol mol⁻¹).
+ * @param ko25 Michaelis-Menten constant for O₂ at 25°C (mmol mol⁻¹).
+ * @param svvmax Slope of the temperature response curve for Vmax.
+ * @param svjmax Slope of the temperature response curve for Jmax.
+ * @param havmax Activation energy for Vmax (J mol⁻¹).
+ * @param hdvmax Deactivation energy for Vmax (J mol⁻¹).
+ * @param hdjmax Deactivation energy for Jmax (J mol⁻¹).
+ * @param hajmax Activation energy for Jmax (J mol⁻¹).
+ * @param lightcurv Curvature parameter for the light response curve.
+ * @param night Indicates whether it is nighttime ("y" for yes, "n" for no).
+ * @param eplantl Array of transpiration rates for each plant or leaf (mmol m⁻² s⁻¹).
+ * @param lavpd Array of leaf-to-air vapor pressure deficits (kPa).
+ * @param leaftemp Array of leaf temperatures (°C).
+ *
+ * @details
+ * This function implements the carbon assimilation model based on Medlyn et al. (2002),
+ * which describes the relationship between stomatal conductance, photosynthesis, and
+ * environmental factors. It calculates stomatal conductance, photosynthetic rates, and
+ * intercellular CO₂ concentrations using environmental conditions (e.g., light, temperature,
+ * vapor pressure deficit) and physiological parameters (e.g., Vmax, Jmax, compensation point).
+ *
+ * Key features of the model include:
+ * - Temperature corrections for Vmax, Jmax, and other parameters using Arrhenius equations.
+ * - Iterative solution of the A-Ci curve to determine intercellular CO₂ concentration (Ci).
+ * - Calculation of gross and net photosynthetic rates, considering light and Rubisco limitations.
+ * - High-temperature inhibition of respiration.
+ * - Handling of nighttime respiration and stomatal closure.
+ *
+ * The results are stored in global or member variables, including:
+ * - `psyn`: Net photosynthetic rate (µmol m⁻² s⁻¹).
+ * - `cin`: Intercellular CO₂ concentration (µmol mol⁻¹).
+ * - `psynmax`: Maximum net photosynthetic rate observed (µmol m⁻² s⁻¹).
+ * - `gcanc`: Stomatal conductance in umol m-2 s-1
+ */
 void CarbonAssimilationModel::assimilation(const int &p,
                                            const double &gmax,
                                            const double &qmax,
@@ -105,7 +150,53 @@ void CarbonAssimilationModel::assimilation(const int &p,
         //'Cells(16 + p, 65) = psynsh[p]
 }
 
- //'gets virgin assimilation for sun leaves
+/**
+ * @brief Simulates the virgin carbon assimilation process in plants, calculating 
+ *        photosynthetic rates and related parameters based on environmental and 
+ *        physiological inputs, following the approach described by 
+ *        Medlyn et al. (2002).
+ *
+ * @param p Index of the current plant or leaf being processed.
+ * @param gmax Maximum stomatal conductance (mmol m⁻² s⁻¹).
+ * @param qmax Maximum quantum yield of photosystem II.
+ * @param comp25 CO₂ compensation point at 25°C (µmol mol⁻¹).
+ * @param thetac Curvature parameter for the photosynthetic response.
+ * @param vmax25 Maximum carboxylation rate of Rubisco at 25°C (µmol m⁻² s⁻¹).
+ * @param jmax25 Maximum electron transport rate at 25°C (µmol m⁻² s⁻¹).
+ * @param kc25 Michaelis-Menten constant for CO₂ at 25°C (µmol mol⁻¹).
+ * @param ko25 Michaelis-Menten constant for O₂ at 25°C (mmol mol⁻¹).
+ * @param svvmax Slope of the temperature response curve for Vmax.
+ * @param svjmax Slope of the temperature response curve for Jmax.
+ * @param havmax Activation energy for Vmax (J mol⁻¹).
+ * @param hdvmax Deactivation energy for Vmax (J mol⁻¹).
+ * @param hdjmax Deactivation energy for Jmax (J mol⁻¹).
+ * @param hajmax Activation energy for Jmax (J mol⁻¹).
+ * @param lightcurv Curvature parameter for the light response curve.
+ * @param night Indicates whether it is nighttime ("y" for yes, "n" for no).
+ * @param emd Midday transpiration rates for each plant or leaf (mmol m⁻² s⁻¹).
+ * @param lavpdmd Array of leaf-to-air vapor pressure deficits (kPa).
+ * @param leaftmd Array of leaf temperatures (°C).
+ *
+ * @details
+ * This function implements the carbon assimilation model based on Medlyn et al. (2002),
+ * which describes the relationship between stomatal conductance, photosynthesis, and
+ * environmental factors. It calculates stomatal conductance, photosynthetic rates, and
+ * intercellular CO₂ concentrations using environmental conditions (e.g., light, temperature,
+ * vapor pressure deficit) and physiological parameters (e.g., Vmax, Jmax, compensation point).
+ *
+ * Key features of the model include:
+ * - Temperature corrections for Vmax, Jmax, and other parameters using Arrhenius equations.
+ * - Iterative solution of the A-Ci curve to determine intercellular CO₂ concentration (Ci).
+ * - Calculation of gross and net photosynthetic rates, considering light and Rubisco limitations.
+ * - High-temperature inhibition of respiration.
+ * - Handling of nighttime respiration and stomatal closure.
+ *
+ * The results are stored in member variables, including:
+ * - `psynmd`: Net photosynthetic rate (µmol m⁻² s⁻¹).
+ * - `cinmd`: Intercellular CO₂ concentration (µmol mol⁻¹).
+ * - `psynmaxmd`: Maximum net photosynthetic rate observed (µmol m⁻² s⁻¹).
+ * - `gcancmd`: Stomatal conductance in umol m-2 s-1
+ */
 void CarbonAssimilationModel::assimilationMd(const int &p,
                                            const double &gmax,
                                            const double &qmax,
@@ -204,8 +295,52 @@ void CarbonAssimilationModel::assimilationMd(const int &p,
         //'Cells(16 + p, 65) = psynsh[p]
 }
 
-// Literally same function as above just using shade parameters
-//'gets assimilation for shade leaves
+/**
+ * @brief Simulates the carbon assimilation process in plants, calculating photosynthetic rates
+ *        and related parameters based on environmental and physiological inputs, following
+ *        the approach described by Medlyn et al. (2002).
+ *
+ * @param p Index of the current plant or leaf being processed.
+ * @param gmax Maximum stomatal conductance (mmol m⁻² s⁻¹).
+ * @param qmax Maximum quantum yield of photosystem II.
+ * @param comp25 CO₂ compensation point at 25°C (µmol mol⁻¹).
+ * @param thetac Curvature parameter for the photosynthetic response.
+ * @param vmax25 Maximum carboxylation rate of Rubisco at 25°C (µmol m⁻² s⁻¹).
+ * @param jmax25 Maximum electron transport rate at 25°C (µmol m⁻² s⁻¹).
+ * @param kc25 Michaelis-Menten constant for CO₂ at 25°C (µmol mol⁻¹).
+ * @param ko25 Michaelis-Menten constant for O₂ at 25°C (mmol mol⁻¹).
+ * @param svvmax Slope of the temperature response curve for Vmax.
+ * @param svjmax Slope of the temperature response curve for Jmax.
+ * @param havmax Activation energy for Vmax (J mol⁻¹).
+ * @param hdvmax Deactivation energy for Vmax (J mol⁻¹).
+ * @param hdjmax Deactivation energy for Jmax (J mol⁻¹).
+ * @param hajmax Activation energy for Jmax (J mol⁻¹).
+ * @param lightcurv Curvature parameter for the light response curve.
+ * @param night Indicates whether it is nighttime ("y" for yes, "n" for no).
+ * @param eplantl Array of transpiration rates for each plant or leaf (mmol m⁻² s⁻¹).
+ * @param lavpdsh Array of leaf-to-air vapor pressure deficits (kPa).
+ * @param leaftempsh Array of leaf temperatures (°C).
+ *
+ * @details
+ * This function implements the carbon assimilation model based on Medlyn et al. (2002),
+ * which describes the relationship between stomatal conductance, photosynthesis, and
+ * environmental factors. It calculates stomatal conductance, photosynthetic rates, and
+ * intercellular CO₂ concentrations using environmental conditions (e.g., light, temperature,
+ * vapor pressure deficit) and physiological parameters (e.g., Vmax, Jmax, compensation point).
+ *
+ * Key features of the model include:
+ * - Temperature corrections for Vmax, Jmax, and other parameters using Arrhenius equations.
+ * - Iterative solution of the A-Ci curve to determine intercellular CO₂ concentration (Ci).
+ * - Calculation of gross and net photosynthetic rates, considering light and Rubisco limitations.
+ * - High-temperature inhibition of respiration.
+ * - Handling of nighttime respiration and stomatal closure.
+ *
+ * The results are stored in global or member variables, including:
+ * - `psynsh`: Net photosynthetic rate (µmol m⁻² s⁻¹).
+ * - `cinsh`: Intercellular CO₂ concentration (µmol mol⁻¹).
+ * - `psynmaxsh`: Maximum net photosynthetic rate observed (µmol m⁻² s⁻¹).
+ * - `gcancsh`: Stomatal conductance in umol m-2 s-1
+ */
 void CarbonAssimilationModel::assimilationShade(const int &p,
                                                 const double &gmax,
                                                 const double &qmax,
@@ -306,7 +441,53 @@ void CarbonAssimilationModel::assimilationShade(const int &p,
         //'Cells(16 + p, 65) = psynsh[p]
 }
 
-//'gets virgin assimilation for shade leaves for midday solution
+/**
+ * @brief Simulates the virgin carbon assimilation process in plants for the shaded leaves, calculating 
+ *        photosynthetic rates and related parameters based on environmental and 
+ *        physiological inputs, following the approach described by 
+ *        Medlyn et al. (2002).
+ *
+ * @param p Index of the current plant or leaf being processed.
+ * @param gmax Maximum stomatal conductance (mmol m⁻² s⁻¹).
+ * @param qmax Maximum quantum yield of photosystem II.
+ * @param comp25 CO₂ compensation point at 25°C (µmol mol⁻¹).
+ * @param thetac Curvature parameter for the photosynthetic response.
+ * @param vmax25 Maximum carboxylation rate of Rubisco at 25°C (µmol m⁻² s⁻¹).
+ * @param jmax25 Maximum electron transport rate at 25°C (µmol m⁻² s⁻¹).
+ * @param kc25 Michaelis-Menten constant for CO₂ at 25°C (µmol mol⁻¹).
+ * @param ko25 Michaelis-Menten constant for O₂ at 25°C (mmol mol⁻¹).
+ * @param svvmax Slope of the temperature response curve for Vmax.
+ * @param svjmax Slope of the temperature response curve for Jmax.
+ * @param havmax Activation energy for Vmax (J mol⁻¹).
+ * @param hdvmax Deactivation energy for Vmax (J mol⁻¹).
+ * @param hdjmax Deactivation energy for Jmax (J mol⁻¹).
+ * @param hajmax Activation energy for Jmax (J mol⁻¹).
+ * @param lightcurv Curvature parameter for the light response curve.
+ * @param night Indicates whether it is nighttime ("y" for yes, "n" for no).
+ * @param emd Midday transpiration rates for each plant or leaf (mmol m⁻² s⁻¹).
+ * @param lavpdshmd Array of leaf-to-air vapor pressure deficits (kPa).
+ * @param leaftshmd Array of leaf temperatures (°C).
+ *
+ * @details
+ * This function implements the carbon assimilation model based on Medlyn et al. (2002),
+ * which describes the relationship between stomatal conductance, photosynthesis, and
+ * environmental factors. It calculates stomatal conductance, photosynthetic rates, and
+ * intercellular CO₂ concentrations using environmental conditions (e.g., light, temperature,
+ * vapor pressure deficit) and physiological parameters (e.g., Vmax, Jmax, compensation point).
+ *
+ * Key features of the model include:
+ * - Temperature corrections for Vmax, Jmax, and other parameters using Arrhenius equations.
+ * - Iterative solution of the A-Ci curve to determine intercellular CO₂ concentration (Ci).
+ * - Calculation of gross and net photosynthetic rates, considering light and Rubisco limitations.
+ * - High-temperature inhibition of respiration.
+ * - Handling of nighttime respiration and stomatal closure.
+ *
+ * The results are stored in member variables, including:
+ * - `psynshmd`: Net photosynthetic rate (µmol m⁻² s⁻¹).
+ * - `cinshmd`: Intercellular CO₂ concentration (µmol mol⁻¹).
+ * - `psynmaxshmd`: Maximum net photosynthetic rate observed (µmol m⁻² s⁻¹).
+ * - `gcancshmd`: Stomatal conductance in umol m-2 s-1
+ */
 void CarbonAssimilationModel::assimilationShadeMd(const int &p,
                                                 const double &gmax,
                                                 const double &qmax,
@@ -404,7 +585,6 @@ void CarbonAssimilationModel::assimilationShadeMd(const int &p,
             psynmaxshmd = 0;
         }
     } //End if// //'night if
-        //'Cells(16 + p, 65) = psynsh[p]
 }
 
 /* Sets all parameters associated with assimilation to zero */
