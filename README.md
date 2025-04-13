@@ -24,10 +24,10 @@ __a)__ To run, build and execute the model program (no command line arguments --
 g++ -std=c++17
 ```
 
-The -O3 ~~and -ffast-math~~ optimizations are recommended with GNU compilers:
+The -O2 ~~and -ffast-math~~ optimizations are recommended with GNU compilers:
 
 ```{}
-g++ -std=c++17 -O3
+g++ -std=c++17 -O2
 ```
 
 Using ffast-math does not guarantee reproducibility as this model uses a lot of floating point operations and is incredibly sensitive to numerical instabilities. See [here](https://stackoverflow.com/questions/7420665/what-does-gccs-ffast-math-actually-do) for more information. There is currently a header guard in `01Utilities.h` that prevents the use of it, but if you would like to compile with it, then feel free to comment that out.
@@ -125,7 +125,7 @@ Configure plant traits and other parameters in __parameters.csv__ (expected inpu
 | Hydraulics		| __i_leafPercRes__		| Saturated % of tree resistance in leaves	|
 | Hydraulics		| __i_kmaxTree__		| Kmax of tree in kg hr-1 m-2 MPa-1 per basal area	|
 | Hydraulics		| __i_pinc__			| Pressure increment for curve generation, (MPa) - higher is faster, but less accurate (setting too high can cause Newton-Rhapson root pressure solving failure)	|
-| Hydraulics		| __i_LSC__			| Leaf specific conductance in mmol m-2 w-1 MPa-1 	|
+| Hydraulics		| __i_LSC__			| Leaf specific conductance in mmol m-2 s-1 MPa-1 (per leaf area) 	|
 | Hydraulics		| __i_LSCpref__			| Water potential for LSC |
 | Hydraulics		| __i_cr__			| Root element Weibull parameter c	|
 | Hydraulics		| __i_br__			| Root element Weibull parameter b	|
