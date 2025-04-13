@@ -340,7 +340,10 @@ def _get_time_series(start_date, end_date, latitude, longitude, variable):
         except requests.RequestException as e:
             print(f"Attempt {attempt+1} failed: {e}")
 
-    raise Exception(f"Error code {r.status_code} from url {full_url} : {r.text}")
+    try:
+        raise Exception(f"Error code {r.status_code} from url {full_url} : {r.text}")
+    except:
+        raise Exception(f"Could not connect to {full_url}. Please try again later.")
 
 def _parse_time_series(ts_str, conv_func: Callable = None):
     """
