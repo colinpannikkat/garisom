@@ -126,9 +126,9 @@ int main(int argc, char *argv[])
                 std::cout << "Timestep " << dd << " completed" << std::endl;
         } while (!(plantModel->data.getColumnValue("julian-day", dd + 1) < 0.01)); // loop until the jd value on next row is zero -- it's an integer, but everything is stored in the array as double
     
-    std::string species = plantModel->param_data("i_sp", config_setting);
-    std::string region = plantModel->param_data("i_region", config_setting);
-    std::string site = plantModel->param_data("i_site", config_setting);
+    std::string species = plantModel->param_data("i_sp", plantModel->species_no);
+    std::string region = plantModel->param_data("i_region", plantModel->species_no);
+    std::string site = plantModel->param_data("i_site", plantModel->species_no);
     plantModel->data.output("timesteps_output_" + species + "_" + region + "_" + site + ".csv");
     plantModel->gs_data.output("sum_output_" + species + "_" + region + "_" + site + ".csv");
 
