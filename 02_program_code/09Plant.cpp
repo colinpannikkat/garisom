@@ -45,6 +45,7 @@ void Plant::setConfig(int config_setting) { // sets up model configuration
     if (config_data.getColumnValue("i_multipleSP", config_setting) == "y")
     {
         std::cout << "On" << std::endl;
+        std::cout << "CONFIG_SETTING: " << config_setting << std::endl;
         config_data.getColumnValue(species_no, "i_speciesN", config_setting);
         species_no -= 1;
         std::cout << "MODE: Setting species number to: " << species_no + 1 << std::endl; 
@@ -347,7 +348,6 @@ void Plant::initModelVars() {
     for (int i = 0; i < CURVE_MAX; ++i) {
         e_p[i] = 0.0;
     }
-    species_no = 0;
     stage_id = 0;
     unknowns = 0;
     halt = 0;
