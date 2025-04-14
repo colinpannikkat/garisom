@@ -863,7 +863,7 @@ def build_config_param_files(data: DataFrame, out_data_path: str) -> None:
         df_param['i_rootBeta'] = group['rootBeta'].fillna(root_beta)
         df_param['i_leafPercRes'] = group['leafPercRes'].fillna(leaf_per)
         df_param['i_kmaxTree'] = _calculate_kmax(df_param['i_leafPerBasal'], group['lsc'], df_param['i_leafPercRes'])
-        df_param['i_pInc'] = group['pInc'].fillna(p_inc)
+        df_param['i_pinc'] = group['p_inc'].fillna(p_inc)
         df_param['i_cr'] = group['cr']
         df_param['i_br'] = group['br']
         df_param['i_cs'] = group['cs']
