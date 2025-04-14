@@ -219,7 +219,7 @@ class Plant {
         */
         double &model();
 
-        void setConfig();
+        void setConfig(int config_setting);
         void initModelVars();
         void cleanModelVars();
         void readin();

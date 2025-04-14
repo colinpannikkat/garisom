@@ -9,20 +9,29 @@ int main(int argc, char *argv[])
     std::cout << std::endl;
 
     Plant *plantModel = new Plant(0);
-    std::string param_data;
-    std::string config_data;
+    std::string param_data = CONFIG_FILE_PATH;
+    std::string config_data = PARAMETER_FILE_PATH;
+    int config_setting = CONFIG_SETTING; // default to just use first row in configuration
 
-    // If arguments are provided, use provided config and param data files
+    // If arguments are provided, use provided config and param data files, and set config_setting
     if (argc > 1) {
-        param_data = argv[1];
-        if (argc == 3) { // if config file is provided
-            config_data = argv[2];
+        if (strcmp(argv[1], "--help") == 0) {
+            std::cout << "Usage: ./run [parameter_file] [config_file] [config_setting]" << std::endl;
+            std::cout << "All arguments are optional:" << std::endl;
+            std::cout << "  parameter_file: Path to the parameter data file (default: " << PARAMETER_FILE_PATH << ")" << std::endl;
+            std::cout << "  config_file: Path to the configuration data file (default: " << CONFIG_FILE_PATH << ")" << std::endl;
+            std::cout << "  config_setting: Configuration setting index (default: " << CONFIG_SETTING + 1 << ")" << std::endl;
+            std::cout << "Example: ./run params.txt config.txt 2" << std::endl;
+            exit(0);
         } else {
-            config_data = CONFIG_FILE_PATH;
+            param_data = argv[1];
         }
-    } else { // default
-        param_data = PARAMETER_FILE_PATH;
-        config_data = CONFIG_FILE_PATH;
+
+        if (argc > 2) // if config file is provided
+            config_data = argv[2];
+
+        if (argc > 3) // config setting provided
+            config_setting = std::atoi(argv[3]) - 1;
     }
 
     std::cout << " -------------------------------------------------" << std::endl;
@@ -47,7 +56,7 @@ int main(int argc, char *argv[])
     plantModel->cleanModelVars();
     std::cout << "Model variables cleaned." << std::endl;
 
-    plantModel->setConfig();
+    plantModel->setConfig(config_setting);
     std::cout << "Configuration set." << std::endl;
 
     plantModel->initModelVars();
@@ -116,9 +125,12 @@ int main(int argc, char *argv[])
             if (dd % 1000 == 0)
                 std::cout << "Timestep " << dd << " completed" << std::endl;
         } while (!(plantModel->data.getColumnValue("julian-day", dd + 1) < 0.01)); // loop until the jd value on next row is zero -- it's an integer, but everything is stored in the array as double
-
-    plantModel->data.output("timesteps_output.csv");
-    plantModel->gs_data.output("sum_output.csv");
+    
+    std::string species = plantModel->param_data("i_sp", config_setting);
+    std::string region = plantModel->param_data("i_region", config_setting);
+    std::string site = plantModel->param_data("i_site", config_setting);
+    plantModel->data.output("timesteps_output_" + species + "_" + region + "_" + site + ".csv");
+    plantModel->gs_data.output("sum_output_" + species + "_" + region + "_" + site + ".csv");
 
     delete plantModel;
 

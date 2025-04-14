@@ -36,16 +36,16 @@ Plant::Plant(int stage) {
  * @param None
  * @return void
  */
-void Plant::setConfig() { // sets up model configuration
+void Plant::setConfig(int config_setting) { // sets up model configuration
     // // Model Configurations
     // Plant Community
     std::cout << "Plant Community ----------------------------------" << std::endl;
     std::cout << "            Multi-Species Mode: ";
     // Are we working with multiple species? Values: y; n
-    if (config_data.getColumnValue("i_multipleSP") == "y")
+    if (config_data.getColumnValue("i_multipleSP", config_setting) == "y")
     {
         std::cout << "On" << std::endl;
-        config_data.getColumnValue(species_no, "i_speciesN");
+        config_data.getColumnValue(species_no, "i_speciesN", config_setting);
         species_no -= 1;
         std::cout << "MODE: Setting species number to: " << species_no + 1 << std::endl; 
     } else {
@@ -59,7 +59,7 @@ void Plant::setConfig() { // sets up model configuration
     std::cout << "Soil ---------------------------------------------" << std::endl;
     std::cout << "             Ground water flow: "; //i_gWaterEnable
     // turns on/off groundwater flow. Values: on: y; off: n
-    config_data.getColumnValue(ground, "i_gWaterEnable");
+    config_data.getColumnValue(ground, "i_gWaterEnable", config_setting);
     if (ground){
         std::cout << "On" << std::endl;
     } else {
@@ -68,7 +68,7 @@ void Plant::setConfig() { // sets up model configuration
 
     std::cout << "     Soil water redistribution: "; //i_soilRedEnable
     // turns on/off soil redistribution routine. Values: on: y; off: n
-    config_data.getColumnValue(soilred, "i_soilRedEnable");
+    config_data.getColumnValue(soilred, "i_soilRedEnable", config_setting);
     if(soilred){
         std::cout << "On" << std::endl;
     } else {
@@ -77,7 +77,7 @@ void Plant::setConfig() { // sets up model configuration
 
     std::cout << "        Soil water evaporation: "; //i_soilEvapEnable
     // turns on/off soil evaporation routine. Values: on: y; off: n
-    config_data.getColumnValue(sevap, "i_soilEvapEnable");
+    config_data.getColumnValue(sevap, "i_soilEvapEnable", config_setting);
     if(sevap){
         std::cout << "On" << std::endl;
     } else {
@@ -88,7 +88,7 @@ void Plant::setConfig() { // sets up model configuration
     std::cout << std::endl;
     std::cout << "Climate ------------------------------------------" << std::endl;
     std::cout << "               Rainfall inputs: "; //i_rainEnable
-    config_data.getColumnValue(raining, "i_rainEnable");
+    config_data.getColumnValue(raining, "i_rainEnable", config_setting);
     if (!raining) {
         rainEnabled = false;
         std::cout << "Off" << std::endl;
@@ -114,7 +114,7 @@ void Plant::setConfig() { // sets up model configuration
     }
     else if (stage_id == STAGE_ID_HIST_OPT || stage_id == STAGE_ID_FUT_OPT)
     {
-        if (config_data.getColumnValue("i_useGSDataOpt") == "y") { // different parameter name
+        if (config_data.getColumnValue("i_useGSDataOpt", config_setting) == "y") { // different parameter name
             useGSData = true;
             std::cout << "On" << std::endl;
         }
@@ -133,7 +133,7 @@ void Plant::setConfig() { // sets up model configuration
     std::cout << "Hydraulics ---------------------------------------" << std::endl;
     std::cout << "                Pre-dawns mode: ";
     // turns on/off if model should consider measured pre-dawn water potential values. Values: n (off); y (on)
-    if (config_data.getColumnValue("i_predawnsMode") == "y")
+    if (config_data.getColumnValue("i_predawnsMode", config_setting) == "y")
     {
         mode_predawns = true;
         std::cout << "On" << std::endl;
@@ -147,7 +147,7 @@ void Plant::setConfig() { // sets up model configuration
     }
     
     std::cout << "          Xylem refilling mode: ";
-    config_data.getColumnValue(refilling, "i_refilling");
+    config_data.getColumnValue(refilling, "i_refilling", config_setting);
     if(refilling){
         std::cout << "On" << std::endl;
     } else {
@@ -156,7 +156,7 @@ void Plant::setConfig() { // sets up model configuration
     
     std::cout << "              Xylem hysteresis: "; 
     // turns on/off xylem hysteresis from previous growing season. Values: n(off); y(on) 
-    if(config_data.getColumnValue("i_cavitFatigue") == "y"){// "i_cavitFatigue"
+    if(config_data.getColumnValue("i_cavitFatigue", config_setting) == "y"){// "i_cavitFatigue"
         hysteresis = true;
         std::cout << "On" << std::endl;
     } else {
@@ -165,7 +165,7 @@ void Plant::setConfig() { // sets up model configuration
     }
 
     std::cout << "   Cavitation fatigue in roots: ";
-    if (config_data.getColumnValue("i_stemOnly") == "n")
+    if (config_data.getColumnValue("i_stemOnly", config_setting) == "n")
     {
         stem_only = false;
         std::cout << "On" << std::endl;
@@ -179,7 +179,7 @@ void Plant::setConfig() { // sets up model configuration
     std::cout << "BAGA Optimization --------------------------------" << std::endl;
     std::cout << "          Iterate Ground Water: ";
     // Iterating ground water in for each stand. Values: y; n
-    if (config_data.getColumnValue("i_iter_gwEnable") == "y")
+    if (config_data.getColumnValue("i_iter_gwEnable", config_setting) == "y")
         iter_gwEnable = true;
     else
         iter_gwEnable = false;
@@ -191,10 +191,9 @@ void Plant::setConfig() { // sets up model configuration
         std::cout << "Off" << std::endl;//default
     }
     
-    int sp_n = 0;
-    param_data.getColumnValue(iter_gwInc, "i_iter_gwInc", sp_n);
-    param_data.getColumnValue(iter_gwStart, "i_iter_gwStart", sp_n);
-    param_data.getColumnValue(iter_gwEnd, "i_iter_gwEnd", sp_n);
+    param_data.getColumnValue(iter_gwInc, "i_iter_gwInc", species_no);
+    param_data.getColumnValue(iter_gwStart, "i_iter_gwStart", species_no);
+    param_data.getColumnValue(iter_gwEnd, "i_iter_gwEnd", species_no);
 
     std::cout << "  Iterate Field Capacity (FFC): ";
     // Iterating field capacity for each stand. Values: y; n
@@ -210,13 +209,13 @@ void Plant::setConfig() { // sets up model configuration
         std::cout << "Off" << std::endl;//default
     }
 
-    param_data.getColumnValue(iter_ffcInc, "i_iter_ffcInc",sp_n);
-    param_data.getColumnValue(iter_ffcStart, "i_iter_ffcStart",sp_n);
-    param_data.getColumnValue(iter_ffcEnd, "i_iter_ffcEnd",sp_n);
+    param_data.getColumnValue(iter_ffcInc, "i_iter_ffcInc",species_no);
+    param_data.getColumnValue(iter_ffcStart, "i_iter_ffcStart",species_no);
+    param_data.getColumnValue(iter_ffcEnd, "i_iter_ffcEnd",species_no);
     
     std::cout << "           Iterate Field BA:GA: ";
     // Iterating BA:GA for each stand. Values: off; on
-    if (config_data.getColumnValue("i_iter_bagaEnable") == "y")
+    if (config_data.getColumnValue("i_iter_bagaEnable", config_setting) == "y")
         iter_bagaEnable = true;
     else
         iter_bagaEnable = false;
@@ -228,11 +227,11 @@ void Plant::setConfig() { // sets up model configuration
         std::cout << "Off" << std::endl;//default
     }
 
-    param_data.getColumnValue(iter_bagaInc, "i_iter_bagaInc",sp_n);
-    param_data.getColumnValue(iter_bagaStart, "i_iter_bagaStart",sp_n);
-    param_data.getColumnValue(iter_bagaEnd, "i_iter_bagaEnd",sp_n);
-    param_data.getColumnValue(iter_bagaRef, "i_iter_bagaRef",sp_n);
-    param_data.getColumnValue(iter_bagaCutoff, "i_iter_bagaCutoff",sp_n);
+    param_data.getColumnValue(iter_bagaInc, "i_iter_bagaInc",species_no);
+    param_data.getColumnValue(iter_bagaStart, "i_iter_bagaStart",species_no);
+    param_data.getColumnValue(iter_bagaEnd, "i_iter_bagaEnd",species_no);
+    param_data.getColumnValue(iter_bagaRef, "i_iter_bagaRef",species_no);
+    param_data.getColumnValue(iter_bagaCutoff, "i_iter_bagaCutoff",species_no);
     
     iter_bagaRef = 1.0; //156.269; // 1.0; // TODO TEMP can remove after param sheets updated
     iter_bagaEnd = 500.0; // TODO TEMP " -> for bisection method, allow extreme range
@@ -283,11 +282,11 @@ void Plant::setConfig() { // sets up model configuration
     std::cout << std::endl;
     std::cout << "File locations -----------------------------------" << std::endl;
     std::cout << "  Path to climate forcing data: " << std::endl;
-    climate_forcing_data_path = config_data.getColumnValue("i_ClimateData");
+    climate_forcing_data_path = config_data.getColumnValue("i_ClimateData", config_setting);
     std::cout << climate_forcing_data_path << std::endl;
     
     std::cout << "   Path to growing season data: " << std::endl;
-    growing_season_limits_data_path = config_data.getColumnValue("i_GSData");
+    growing_season_limits_data_path = config_data.getColumnValue("i_GSData", config_setting);
     std::cout << growing_season_limits_data_path << std::endl;
 
     std::cout << "  Path to time-step header file: " << std::endl;

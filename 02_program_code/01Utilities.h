@@ -24,6 +24,9 @@
 #define PARAMETER_FILE_PATH "../03_test_data/parameters.csv"
 #define DATA_HEADER_FILE_PATH "./dataheader.csv"
 
+// Config Setting (used for determining which row of configuration file to use)
+#define CONFIG_SETTING 0
+
 // Output Precision
 #define FIO_PRECISION 12
 
