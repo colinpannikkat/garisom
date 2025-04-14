@@ -267,6 +267,9 @@ def build_growing_season_data(noaa_data: DataFrame,
         gs_data['ca_ppm'] = noaa_data.set_index('Year').loc[gs_data['Year'], 'ca_ppm'].values
         gs_data.to_csv(f"{out_data_path}/{site}/seasonlimits.csv", index=False)
         print(f"{site} growing season data saved to {out_data_path}/{site}/seasonlimits.csv.")
+        
+        # Add empty last row to site_data
+        site_data = pd.concat([site_data, pd.DataFrame([[""] * len(site_data.columns)], columns=site_data.columns)], ignore_index=True)
         site_data.to_csv(f"{out_data_path}/{site}/dataset.csv", index=False, columns=['Year', 'Day', 'Hour', 'Solar_Wm2', 'Rain_mm', 'Wind_ms.1', 'Tair_C', 'Tsoil_C', 'D_kPa'])
         print(f"{site} hourly data saved to {out_data_path}/{site}/dataset.csv")
 
