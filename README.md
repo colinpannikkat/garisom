@@ -77,7 +77,6 @@ The following files (included in this repository) should be located in the worki
   - __configuration.csv__ (model controls)
   - __dataset.csv__ (hourly weather drivers).
   - __dataheader.csv__ (a header row for the hourly data output).
-  - __sumheader.csv__ (a header row for the summary data output).
   - __seasonlimits.csv__ (growing season limits and yearly atmospheric CO2, only required if using "sequential year mode" described below)
 
 You can also provide a relative directory path to **parameters.csv** and **configuration.csv** for input to the model. If the files were built using `file_builder.py`, the seasonlimits and dataset files will automatically be inputted with absolute file paths.
@@ -246,8 +245,6 @@ All model configuration parameters in **configuration.csv**.
 | Community     | __i_speciesN__        | Number of species/PFT to run the model. The species number indicated should correspond to the row in the parameter file.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | Forcing files | __i_ClimateData__     | Path to file with climate forcing variables __dataset.csv__                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | Forcing files | __i_GSData__          | Path to file with growing season data __seasonlimits.csv__                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| Forcing files | __i_dataheader__      | Path to time-step header file __dataheader.csv__                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| Forcing files | __i_sumheader__       | Path to annual summary header file __sumheader.csv__                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 
 ### Weather Data (`dataset.csv`)
 
@@ -292,7 +289,7 @@ To estimate the growing season, following [Sperry et al. 2019 PNAS](https://www.
 	- Water content and deltas (mm)
 	- Ci 
 
-- Summary Outputs (per year, see sumheader.csv for full list):
+- Summary Outputs (per year, see gs_data output in code for full list):
 	- Total Anet (mmol yr-1 m-2(leaf area))
 	- Total E (mm = mm3/mm2(ground area))
 	- Minimum whole plant conductance during the growing season (kghr-1m-2)

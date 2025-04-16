@@ -1,5 +1,16 @@
 # Changelog
-Changelog as of 02/05/25
+Changelog as of 04/16/25
+
+## 04/16/25 (3.0.4)
+* Adding command line argument for configuration selection
+* Added `file_builder.py` that can be used to generate the model input files
+* Added function headers to all functions
+* Fixed summary output
+* Removed data and summary data header from the configuration files, scrapping summary data header entirely, and hard coded them in `01Utilities.h`
+  * Summary data was redundant since 100% of its outputs were being written from gs_data, so now we just output that instead
+* Added direct `()` operator for accessing data stores derived from CSVData
+* Modified data_template and removed some deprecated input parameters
+* Added notebook for plotting the model outputs
 
 ## 02/05/25 (3.0.3)
 * Finished porting over code
