@@ -790,7 +790,10 @@ def build_config_param_files(data: DataFrame, out_data_path: str) -> None:
     emiss = 0.97            # Long wave emissivity
     atm_trans = 0.75        # Atmospheric transmittance from weather data
     light_curv = 0.9        # 0.9 is curvature of light per Medlyn 2002
-    q_max = 0.3             # "The value of α (q_max) was fixed at 0.3 mol electrons mol−1 photon, based on an average C3 photosynthetic quantum yield of 0.093 and a leaf absorptance of 0.8 (Long, Postl & Bolharnordenkampf 1993)." -- Medyln 2002
+    q_max = 0.3             # "The value of α (q_max) was fixed at 0.3 mol electrons 
+                            # mol−1 photon, based on an average C3 photosynthetic 
+                            # quantum yield of 0.093 and a leaf absorptance of 0.8 
+                            # (Long, Postl & Bolharnordenkampf 1993)." -- Medyln 2002
     mole_frac = 0.21        # Mole fraction (not used in the provided code)
     ground_water_p = 0      # Ground water pressure
     ground_water_d = 1      # Distance to ground water source in meters from the bottom of the root system
