@@ -31,37 +31,39 @@ bool locateRanges(CSVData<std::string> &config_data, std::string config_file_nam
  * @brief Reads the growing season limits from a CSV file and populates the provided CSVData object.
  *
  * This function reads data from a specified CSV file containing growing season limits and stores it in the provided
- * CSVData object. If no file name is provided, the function will skip the loading process and treat years as independent.
+ * CSVData object. If no file name is provided, an assertion error will occur.
+ * 
+ * Even if years are being treated as independent (no growing season), a file with years
+ * should still be provided to act as the base for summary output.
  *
  * @param gs_data Reference to a CSVData object where the growing season data will be stored.
  * @param gs_file_name Reference to a string containing the name of the CSV file to be read.
  *
  * @note If the file cannot be opened, an error message will be printed to the console.
- * @note If no file name is provided, a message indicating that the load is being skipped will be printed to the console.
+ * @note If no file name is provided, an assertion error will occur.
  */
 void readGSSheet(CSVData<double> &gs_data, std::string &gs_file_name, bool use_gs_data) {
 
     gs_data.clear();
+    assert(gs_file_name != "");
 
-    if (use_gs_data && gs_file_name != "") { // only if we actually selected a file, and we're using the GS data files in the first place
+    std::cout << std::endl;
+    std::cout << "Reading growing season limits." << std::endl;
 
-        std::cout << std::endl;
-        std::cout << "Reading growing season limits." << std::endl;
+    std::ifstream data_file(gs_file_name);
+    if (!data_file.is_open())
+        std::cout << "FAILED to open GS RANGE file " << gs_file_name << std::endl;
 
-        std::ifstream data_file(gs_file_name);
-        if (!data_file.is_open())
-            std::cout << "FAILED to open GS RANGE file " << gs_file_name << std::endl;
+    std::cout << "Opened GS RANGE file " << gs_file_name << std::endl;
 
-        std::cout << "Opened GS RANGE file " << gs_file_name << std::endl;
+    gs_data = CSVData<double>(gs_file_name);
+    
+    std::cout << "Finished GS RANGE read." << std::endl;
+    std::cout << std::endl;
 
-        gs_data = CSVData<double>(gs_file_name);
-        
-        std::cout << "Finished GS RANGE read." << std::endl;
-        std::cout << std::endl;
+    if (!use_gs_data) {
 
-    } else {
-
-        std::cout << "Skipping GS RANGE load -- Years will be treated as independent." << std::endl;
+        std::cout << "Years will be treated as independent." << std::endl;
         std::cout << std::endl;
 
     }
