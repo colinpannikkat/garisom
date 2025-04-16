@@ -1,10 +1,12 @@
-# Carbon Gain vs Hydraulic Risk Stomatal Optimization Model V 3.0
+# Carbon Gain vs Hydraulic Risk Stomatal Optimization Model V3.0
+
+**Ga***in* **RI***sk* **S***tomatal* **O***ptimization* **M***odel* (**GARISOM**)
 
 __Coding language:__ C++
 
 __Authors:__ Colin Pannikkat, German Vargas G. & William R.L. Anderegg
 
-__Contact:__ german.vargas@utah.edu
+__Contact:__ vargasgg (at) oregonstate (dot) edu
 
 ------------
 
@@ -16,7 +18,7 @@ The model uses a stomatal carbon gain vs. hydraulic risk optimization (Sperry et
 
 ## Basic usage instructions:
 
-First, fork the repository to your own account. If you don't have a github account, just download the repository. Provide plant and site traits through the parameters file, then supply hourly weather data to drive model. The model will expect these files to be located in the current working directory. See the included examples and the details below for formatting and units. These example files contain all inputs necessary to test-run the model immediately after building.
+First, fork the repository to your own account. If you don't have a Github account, just download the repository. Provide plant and site traits through the parameters file, then supply hourly weather data to drive model. The model will expect these files to be located in the current working directory. See the included examples and the details below for formatting and units. These example files contain all inputs necessary to test-run the model immediately after building.
 
 __a)__ To run, build and execute the model program (no command line arguments -- runs from files in the working directory). Building requires C++17, GNU example:
 
@@ -32,7 +34,7 @@ g++ -std=c++17 -O2
 
 Using ffast-math does not guarantee reproducibility as this model uses a lot of floating point operations and is incredibly sensitive to numerical instabilities. See [here](https://stackoverflow.com/questions/7420665/what-does-gccs-ffast-math-actually-do) for more information. There is currently a header guard in `01Utilities.h` that prevents the use of it, but if you would like to compile with it, then feel free to comment that out.
 
-__b)__ To build and run from the terminal in a Linux/Mac OS system:
+__b)__ To build and run from the terminal in a Linux/Mac OS (*nix) system:
 
 __b.1)__ Clone the repository in a desired location in your system.
 
@@ -55,39 +57,110 @@ make
 __b.4)__ Run this program from the same folder with this command:
 
 ```
-./main [param_data_file] [config_data_file]
+./run [param_data_file] [config_data_file] [config_setting]
 ```
 
-The `param_data_file` and `config_data_file` are optional command line arguments. If not provided, the default file paths will be used which are defined in `01Utilities.h`.
+The `param_data_file`, `config_data_file`, and `config_setting` are optional command line arguments. If not provided, the default file paths will be used which are defined in `01Utilities.h`.
 
 ```c++
-#define CONFIG_FILE_PATH "../03_test_data/configuration.csv"
-#define PARAMETER_FILE_PATH "../03_test_data/parameters.csv"
+#define CONFIG_FILE_PATH "../03_test_data/configuration.csv" // path to configuration file
+#define PARAMETER_FILE_PATH "../03_test_data/parameters.csv" // path to parameter file
+#define CONFIG_SETTING 0                                     // which configuration to use (this is 0-indexed)
 ```
+You may also run `./run --help` for more explicit usage instructions.
 
 __b.5)__ Press <kbd>Command</kbd> + <kbd>C</kbd> if you want to stop the model before it completes (<kbd>Ctrl</kbd> + <kbd>C</kbd> in Windows/Linux)
 
-This version has also been tested with Visual Studio 2017's compiler with similar optimizations (floating point mode fast, maximum optimization preferring speed). The following files (included in this repository) should be located in the working directory (normally the same directory as the executable) before running:
+The following files (included in this repository) should be located in the working directory (normally the same directory as the executable) before running:
 	
   - __parameters.csv__ (site, atmospheric, soils, stand, plant, hydraulics, and carbon assimilation parameters).
   - __configuration.csv__ (model controls)
   - __dataset.csv__ (hourly weather drivers).
   - __dataheader.csv__ (a header row for the hourly data output).
   - __sumheader.csv__ (a header row for the summary data output).
-  - __seasonlimits_2.0.0.csv__ (growing season limits and yearly atmospheric CO2, only required if using "sequential year mode" described below)
+  - __seasonlimits.csv__ (growing season limits and yearly atmospheric CO2, only required if using "sequential year mode" described below)
+
+You can also provide a relative directory path to **parameters.csv** and **configuration.csv** for input to the model. If the files were built using `file_builder.py`, the seasonlimits and dataset files will automatically be inputted with absolute file paths.
 
 Upon completion, two output files are produced:
 	
-  - The __timesteps.csv__ output contains all of the hourly model outputs corresponding to the weather inputs.
-  - The __summary.csv__ output includes various total values for each year (for example, net growing season productivity Anet, net transpiration E, etc.)
+  - The __timesteps_output.csv__ output contains all of the hourly model outputs corresponding to the weather inputs.
+  - The __sum_output.csv__ output includes various total values for each year (for example, net growing season productivity Anet, net transpiration E, etc.)
+
+------------
+
+## Generating Model Input Files
+
+Rather than generating the input files by hand, users can use the `file_builder.py` script. This generates the parameter, configuration, climate data, and growing season files.
+
+**a)** User's may want to isolate their local Python installation, of which they can use [**venv**](https://docs.python.org/3/tutorial/venv.html) or equivalent to create a virtual environment to install the requirements into. After doing so (or not), users can then run the following commands to install all necessary Python packages.
+
+**Activate the environment.**
+```
+source env/bin/activate
+```
+**Then install the required packages given the requirements file.**
+```
+pip -r requirements.txt
+```
+
+**b)** Users should then prepare an initial data file using `data_template.csv`, some values may be optional and will be replaced by defaults if left empty.
+
+```python
+# Default values for various parameters
+co2 = 410               # Atmospheric CO2 concentration in ppm
+leaf_angle = 1          # Leaf angle parameter
+leaf_width = 0.04096    # Leaf width in meters
+soil_Xheight = 1        # Height above soil surface for understory wind and gh in meters
+soil_layers = 5         # Number of soil layers
+field_cap_frac = 0.5    # Fraction that field capacity is of saturation (minus residual)
+field_cap_init = 100    # Percent field capacity for starting the season
+soil_abs_sol = 0.94     # Absorptivity of soil surface for solar
+p_inc = 0.00075         # Pressure increment for curve generation in MPa
+rhizo_per = 50          # Average percent of whole plant resistance in rhizosphere
+leaf_per = 25           # Saturated % of tree resistance in leaves
+root_aspect = 1         # Max radius of root system per max depth
+root_beta = 0.95
+emiss = 0.97            # Long wave emissivity
+atm_trans = 0.75        # Atmospheric transmittance from weather data
+light_curv = 0.9        # 0.9 is curvature of light per Medlyn 2002
+q_max = 0.3             # "The value of α (q_max) was fixed at 0.3 mol electrons mol−1 photon, based on an average C3 photosynthetic quantum yield 
+                        # of 0.093 and a leaf absorptance of 0.8 (Long, Postl & Bolharnordenkampf 1993)." -- Medyln 2002
+ground_water_p = 0      # Ground water pressure
+ground_water_d = 1      # Distance to ground water source in meters from the bottom of the root system
+ground_water = "n"      # Turns on/off groundwater flow
+soil_evap = "n"         # Turns on/off soil evaporation routine
+refilling = "n"         # Turns on/off xylem refilling
+rainfall = "y"          # Turns on/off rain inputs
+gs = "n"                # Turns on/off growing season data for multiple year modeling
+predawn = "n"           # Turns on/off if model should consider pre-dawn water potential values
+```
+
+The only other file that is required is a `dataset.csv` file with at least **Year**, **Day**, and **Hour**. Put this in the `climateData` column.
+
+**c)** Then, run the file builder script.
+
+```
+python file_builder.py [-h] -i INITIAL_YEAR -f FINAL_YEAR [-p PATH] data_file
+```
+
+Inputs:
+- `INITIAL_YEAR`: Initial year to include in output dataset.csv and calculate seasonlimits for.
+- `FINAL_YEAR`: Final year to include in output, this is inclusive.
+- `PATH`: Optional path to output all the files to, by default this is set to `"."` (current working directory).
+- `data_file`: The file path to the full data file (**data_template.csv**).
+
+Since the seasonlimits and climate data are homogenous for sites, output files will be split via the specified site. Therein, configuration and parameter files are outputted and built in `PATH/site/configuration.csv` and `PATH/site/parameters.csv`.
+
+If a column is missing from `datasets.csv`, it will fetch the NLDAS equivalent based on plot location.
 
 ------------
 
 ## Model Input Files
 
-__Model Parameters:__
+### Model Parameters
 
-Configure plant traits and other parameters in __parameters.csv__ (expected input units are indicated). Coupled with the parameter build function in R to produce the __paramaters.csv__ file.
+Configure plant traits and other parameters in __parameters.csv__ (expected input units are indicated).
 
 | Group    		| Parameter       	    	| Description										|
 | ---------------------	| ----------------------------- | -------------------------------------------------------------------------------------	|
@@ -97,12 +170,12 @@ Configure plant traits and other parameters in __parameters.csv__ (expected inpu
 | Site			| __i_latitude__		| Latitude in degree fraction north.	|
 | Site			| __i_longitude__		| Longitude in degree fraction west.	|
 | Site			| __i_elevation__		| Site elevation in m above sea level.	|
-| Site			| __i_slopeI__			| Slope inclination; degrees from horizontal.	|
-| Site			| __i_slopeA__			| Slope aspect; counterclockwise degrees from south.	|
-| Site			| __i_gWaterP__			| Ground water pressure.	|
+| Site			| __i_slopeI__			| Slope inclination; degrees from horizontal. (not used in model)|
+| Site			| __i_slopeA__			| Slope aspect; counterclockwise degrees from south. (not used in model)|
+| Site			| __i_gWaterP__			| Ground water pressure (MPa)	|
 | Site			| __i_gWaterDist__		| Distance to ground water source in m from the bottom of the rootsystem.	|
 | Atmosphere		| __i_atmTrans__		| Atmospheric transmittance from weather data (set to 0.65 as default if no data available).	|
-| Atmosphere		| __i_solarNoon__		| Solar noon correction from weather data in hours.	|
+| Atmosphere		| __i_solarNoon__		| Solar noon correction from weather data in hours. (calculated in `file_builder.py`)	|
 | Atmosphere		| __i_emiss__			| Long wave emissivity.	|
 | Atmosphere		| __i_co2AmbPPM__		| Atmospheric/experiment CO2 ppm, it will update if working with multiple years.	|
 | Soil			| __i_layers__			| Number of soil layers (select 1-5).	|
@@ -112,21 +185,21 @@ Configure plant traits and other parameters in __parameters.csv__ (expected inpu
 | Soil			| __i_soilAbsSol__		| Absorptivity of soil surface for solar.	|
 | Soil			| __i_rhizoPer__		| Average percent of whole plant resistance in rhizosphere (maximum soil limitation)	|
 | Soil			| __i_texture__			| USDA soil texture category (equal for all layers but could also be determined per layer)	|
-| Stand			| __i_baperga__			| Basal area per ground area m2 ha-1	|
+| Stand			| __i_baperga__			| Basal area per ground area (m2 ha-1)	|
 | Stand			| __i_leafAreaIndex__		| Canopy lai (m2 m-2)	|
 | Stand			| __i_soilXHeight__		| Height above soil surface for understory wind and gh in m	|
 | Stand			| __i_height__			| Average tree height in m	|
-| Stand			| __i_treeToPhotoLAI__		|	|	
-| Stand			| __i_leafPerBasal__		| Initial leaf area per basal area per individual tree; m2 m-2	|
+| Stand			| __i_treeToPhotoLAI__		| Deprecated since V3.0 |
+| Stand			| __i_leafPerBasal__		| Initial leaf area per basal area per individual tree; (m2 m-2)	|
 | Tree			| __i_leafWidth__		| Leaf width in m	|
 | Tree			| __i_leafAngleParam__		| Leaf angle parameter; CN 15.4	|
 | Tree			| __i_aspect__			| Max radius of root system per max depth	|
 | Tree			| __i_rootBeta__		| Root biomass distribution is allocated based on the equation reported in Love et al (2019): M = 1 - Beta^d, where M is the fraction of biomass above depth d expressed in cm. We find the Beta that provides an M of 0.995 for the maximum rooting depth.	|
 | Hydraulics		| __i_leafPercRes__		| Saturated % of tree resistance in leaves	|
-| Hydraulics		| __i_kmaxTree__		| Kmax of tree in kg hr-1 m-2 MPa-1 per basal area	|
+| Hydraulics		| __i_kmaxTree__		| Kmax of tree in kg hr-1 m-2 MPa-1 per basal area (calculated in `file_builder.py`) |
 | Hydraulics		| __i_pinc__			| Pressure increment for curve generation, (MPa) - higher is faster, but less accurate (setting too high can cause Newton-Rhapson root pressure solving failure)	|
-| Hydraulics		| __i_LSC__			| Leaf specific conductance in mmol m-2 s-1 MPa-1 (per leaf area) 	|
-| Hydraulics		| __i_LSCpref__			| Water potential for LSC |
+| Hydraulics		| __i_LSC__			| Leaf specific conductance in mmol m-2 s-1 MPa-1 (per leaf area), used in calculated kmaxTree |
+| Hydraulics		| __i_LSCpref__			| Water potential for LSC (deprecated and no longer used) |
 | Hydraulics		| __i_cr__			| Root element Weibull parameter c	|
 | Hydraulics		| __i_br__			| Root element Weibull parameter b	|
 | Hydraulics		| __i_cs__			| Stem element Weibull parameter c	|
@@ -150,60 +223,57 @@ Configure plant traits and other parameters in __parameters.csv__ (expected inpu
 | Photosynthesis	| __i_hajmax__			| Temp-dependency parameters from Leunig 2002 (J mol-1)	|
 | Photosynthesis	| __i_hdjmax__			| Temp-dependency parameters from Leunig 2002 (J mol-1)	|
 | Photosynthesis	| __i_svjmax__			| Temp-dependency parameters from Leunig 2002 (J mol-1 K-1)	|
-| BAGA_optimizer	| __i_iter_gwInc__		|	|
-| BAGA_optimizer	| __i_iter_gwStart__		|	|
-| BAGA_optimizer	| __i_iter_gwEnd__		|	|
-| BAGA_optimizer	| __i_iter_ffcInc__		| Note: If FFC start < FFC end_ will start curve gen by incrementing FFC before ground water	|
-| BAGA_optimizer	| __i_iter_ffcStart__		|	|
-| BAGA_optimizer	| __i_iter_ffcEnd__		|	|
-| BAGA_optimizer	| __i_iter_bagaInc__		|	|
-| BAGA_optimizer	| __i_iter_bagaStart__		|	|
-| BAGA_optimizer	| __i_iter_bagaEnd__		|	|
-| BAGA_optimizer	| __i_iter_bagaRef__		|	|
-| BAGA_optimizer	| __i_iter_bagaCutoff__		| WLT K dropoff threshold (fraction of reference iteration kmin)	|
 
-__Model Configuratiosn:__
+### Model Configuration
 
-| Group    	| Model Control       	    | Description          |
-| ------------- | ------------------------- | -------------------- |
-| Soil     	| __igWaterEnable__   	    | Turns on/off groundwater flow. Values: n (off); y (on). It provides an unlimited source of water at a set potential and distance below the root layers. This water will flow up into the soil layers, and potentially allow layers to fill above field capacity (from the bottom layer up). When disabled (default), the only sources of water input will be the initial fraction of field capacity and observed rainfall (and any water over field capacity will become "drainage").	|
-| Soil     	| __i_soilRedEnable__  	    | Turns on/off soil redistribution routine. Values: n (off); y (on). It allows water to flow between soil layers.	|
-| Soil     	| __i_soilEvapEnable__ 	    | Turns on/off soil evaporation routine. Values: n (off); y (on). It enables simulation of water evaporation from the surface soil layer.	|
-| Climate  	| __i_rainEnable__  	    | Turns on/off rain inputs. Values: n (off); y (on). It allows for precipitation events. Weather data rainfall will be ignored if disabled.	|
-| Climate  	| __i_useGSDataStress__     | Turns on/off growing season data for multiple year modeling. Vakyes: n (off); y (on). If enabled, multiple years will be run "sequentially" with on and off seasons defined in seasonlimits_2.0.0.csv and a continuous water budget. When disabled (default), all weather timesteps provided are treated as part of the growing season and the user is expected to truncate individual years to their start/end days. Water budget is reset between years when disabled, treating years as totally independent.	|
-| Climate	| __i_useGSDataOpt__ 	    | Turns on/off growing season data for multiple year modeling during BAGA optimization. Values: n (off); y (on).	|
-| Hydraulics  	| __i_refilling__ 	    | Turns on/off xylem refilling within a growing season. Values: n (off); y (on). It allows trees to restore lost conductance, however the refilling model is not sufficient to simulate authentic xylem refilling behavior and has __not been thoroughly tested in the current version of the code__.	|
-| Hydraulics  	| __i_predawnsMode__ 	    | Turns on/off if model should consider measured pre-dawn water potential values. Values: n (off); y (on). If set to 'y', disables soil simulation and runs from hourly inputs of canopy predawn water potential. These are read from the "rain" column (rain is not used with the soil sim disabled) in MPa. See "dataset - predawns example.csv". This mode is especially useful when comparing to other models which run from canopy predawn measurements, and generally runs significantly faster as it does not need to solve for root layer pressures.	|
-| Hydraulics  	| __i_cavitFatigue__ 	    | Turns on/off xylem stress hysteresis to carry effects from previous growing season. Values: n (off); y (on). It allows for a weighted estimation of xylem vulnerability to embolism	|
-| Hydraulics  	| __i_stemOnly__ 	    | Turns on/off xylem stress hysteresis only in stem xylem. Values: n (off); y (on). When disabled it allows for a weighted estimation of xylem vulnerability to embolism for both stem and roots	|
-| BAGA  	| __i_iter_gwEnable__ 	    | __Not tested in version 2.0.1__.	|
-| BAGA  	| __i_iter_ffcEnable__ 	    | __Not tested in version 2.0.1__.	|
-| BAGA  	| __i_iter_bagaEnable__     | Increate the BA:GA to find the basal area that puts the stand in ecohydrological equilibrium with the weather conditions. Values: n (off); y (on). __Not tested in version 2.0.1__.	|
-| BAGA  	| __i_iter_useAreaTable__   | if y will pull GA:BA_ LA:BA_ LAI from AreaData table per year and per site. Values: n (off); y (on). __Not tested in version 2.0.1__.	|
-| BAGA  	| __i_iter_yearsAsCount__   | The "year" values represent different data set ID's_ not actual years. In this mode the "start" year is always 0. Values: n (off); y (on). __Not tested in version 2.0.1__.	|
-| BAGA  	| __i_iter_runSupplyCurve__ | Turns on/off all iteration settings. Values: n (off); y (on). __Not tested in version 2.0.1__. 	|
-| Community	| __i_multipleSP__	    | Turns on/off whether our model configuration has 1 species per site (monodominant) or multiple species per site (diverse). Values: n (off); y (on). __NOT READY FOR MULTIPLE SPECIES/PFTs in version 2.0.1__.	|
-| Community	| __i_speciesN__	    | Nnumber of species/PFT to run the model.	|
-| Forcing files	| __i_ClimateData__	    | Path to file with climate forcing variables __dataset.csv__	|
-| Forcing files	| __i_GSData__		    | Path to file with growing season data __seasonlimits.2.0.0.csv__	|
-| Forcing files	| __i_dataheader__	    | Path to time-step header file __dataheader.csv__	|
-| Forcing files	| __i_sumheader__	    | Path to annual summary header file __sumheader.csv__	|
+All model configuration parameters in **configuration.csv**.
 
-------------
+| Group         | Model Control         | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| ------------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Soil          | __igWaterEnable__     | Turns on/off groundwater flow. Values: n (off); y (on). It provides an unlimited source of water at a set potential and distance below the root layers. This water will flow up into the soil layers, and potentially allow layers to fill above field capacity (from the bottom layer up). When disabled (default), the only sources of water input will be the initial fraction of field capacity and observed rainfall (and any water over field capacity will become "drainage").                                                                      |
+| Soil          | __i_soilRedEnable__   | Turns on/off soil redistribution routine. Values: n (off); y (on). It allows water to flow between soil layers.                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| Soil          | __i_soilEvapEnable__  | Turns on/off soil evaporation routine. Values: n (off); y (on). It enables simulation of water evaporation from the surface soil layer.                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| Climate       | __i_rainEnable__      | Turns on/off rain inputs. Values: n (off); y (on). It allows for precipitation events. Weather data rainfall will be ignored if disabled.                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| Climate       | __i_useGSDataStress__ | Turns on/off growing season data for multiple year modeling. Vakyes: n (off); y (on). If enabled, multiple years will be run "sequentially" with on and off seasons defined in seasonlimits_2.0.0.csv and a continuous water budget. When disabled (default), all weather timesteps provided are treated as part of the growing season and the user is expected to truncate individual years to their start/end days. Water budget is reset between years when disabled, treating years as totally independent.                                            |
+| Climate       | __i_useGSDataOpt__    | Turns on/off growing season data for multiple year modeling during BAGA optimization. Values: n (off); y (on).                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| Hydraulics    | __i_refilling__       | Turns on/off xylem refilling within a growing season. Values: n (off); y (on). It allows trees to restore lost conductance, however the refilling model is not sufficient to simulate authentic xylem refilling behavior and has __not been thoroughly tested in the current version of the code__.                                                                                                                                                                                                                                                        |
+| Hydraulics    | __i_predawnsMode__    | Turns on/off if model should consider measured pre-dawn water potential values. Values: n (off); y (on). If set to 'y', disables soil simulation and runs from hourly inputs of canopy predawn water potential. These are read from the "rain" column (rain is not used with the soil sim disabled) in MPa. See "dataset - predawns example.csv". This mode is especially useful when comparing to other models which run from canopy predawn measurements, and generally runs significantly faster as it does not need to solve for root layer pressures. |
+| Hydraulics    | __i_cavitFatigue__    | Turns on/off xylem stress hysteresis to carry effects from previous growing season. Values: n (off); y (on). It allows for a weighted estimation of xylem vulnerability to embolism                                                                                                                                                                                                                                                                                                                                                                        |
+| Hydraulics    | __i_stemOnly__        | Turns on/off xylem stress hysteresis only in stem xylem. Values: n (off); y (on). When disabled it allows for a weighted estimation of xylem vulnerability to embolism for both stem and roots                                                                                                                                                                                                                                                                                                                                                             |
+| Community     | __i_multipleSP__      | Turns on/off whether our model configuration has 1 species per site (monodominant) or multiple species per site (diverse). Values: n (off); y (on).                                                                                                                                                                                                                                                                                                                                                                                                        |
+| Community     | __i_speciesN__        | Number of species/PFT to run the model. The species number indicated should correspond to the row in the parameter file.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| Forcing files | __i_ClimateData__     | Path to file with climate forcing variables __dataset.csv__                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| Forcing files | __i_GSData__          | Path to file with growing season data __seasonlimits.csv__                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| Forcing files | __i_dataheader__      | Path to time-step header file __dataheader.csv__                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| Forcing files | __i_sumheader__       | Path to annual summary header file __sumheader.csv__                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 
-## Weather Data:
+### Weather Data (`dataset.csv`)
 
-See example data for formatting. Weather drivers should be in hourly timesteps and can include multiple years of data. Note that while year values are arbitrary, they should be sequential. For example, if running data for the years 1997 and 2005 these should be numbered sequentially as 1 and 2 (or 1997 and 1998, etc). Inputs:
+See example data for formatting. Weather drivers should be in hourly timesteps and can include multiple years of data. 
 
-- Year.
-- Julian Day (1-366).
-- Hour (0-23).
-- Obs. Solar (W m-2).
-- Rain (mm).
-- Wind (m s-1).
-- Tair (C).
-- Tsoil (C, if not available substitute air temp).
-- D (kPa).
+Inputs:
+- `Year`: Year.
+- `Day`: Julian Day (1-366).
+- `Hour`: Hour (0-23).
+- `Solar_Wm2`: Obs. Solar (W m-2).
+- `Rain_mm`: Rain (mm).
+- `Wind_ms.1`: Wind (m s-1).
+- `Tair_C`: Tair (C).
+- `Tsoil_C`: Tsoil (C).
+- `D_kPa`: D (kPa).
+
+If one of these input parameters is not available, `file_builder.py` is able to use the coordinates specified in the parameter file to provide NLDAS data for the specific plot (see above section).
+
+### Growing Season (`seasonlimits.csv`)
+
+| Column    | Description                                |
+| --------- | ------------------------------------------ |
+| Year      | Year for growing season and CO2 levels     |
+| Start_day | Initial day of growing season              |
+| End_day   | Last day of growing season                 |
+| ca_ppm    | Air CO2 levels near plot according to NOAA |
+
+To estimate the growing season, following [Sperry et al. 2019 PNAS](https://www.pnas.org/doi/abs/10.1073/pnas.1913072116), the script fits three lines to the sections of the cumulative thermal degree days above 5°C to identify the inflexion points as those where the three lines that intersect provide the best fit based on mean squared errors.
 
 ------------
 
@@ -211,24 +281,26 @@ See example data for formatting. Weather drivers should be in hourly timesteps a
 
 - Autosave is always enabled regardless of the setting, as this version of the model has no alternative output method. Output files will be generated in the working directory when the run completes.
 
--Hourly Outputs (see dataheader.csv for full list):
-	-Pressures (predawn soil layer pressures, sun and shade "mid-day" canopy pressures, MPa), 
-	-Water flows (mmol m-2s-1), 
-	-PS assimilation (A, umol s-1m-2 (leaf area)), 
-	-Gain-risk optimized stomatal conductance to water (Gw, mmol m-2s-1),
-	-Element and whole plant conductances, (k, kghr-1m-2), 
-	-Water content and deltas (mm), 
-	-Ci
+- Hourly Outputs (see dataheader.csv for full list):
+	- Pressures (predawn soil layer pressures, sun and shade "mid-day" canopy pressures, MPa)
+	- Water flows (mmol m-2s-1)
+	- PS assimilation (A, umol s-1m-2 (leaf area))
+	- Gain-risk optimized stomatal conductance to water (Gw, mmol m-2s-1)
+	- Element and whole plant conductances, (k, kghr-1m-2)
+	- Water content and deltas (mm)
+	- Ci 
 
--Summary Outputs (per year, see sumheader.csv for full list):
-	-Total Anet (mmol yr-1 m-2(leaf area)),
-	-Total E (mm = mm3/mm2(ground area)), 
-	-Minimum whole plant conductance during the growing season (kghr-1m-2), 
-	-Percent Loss Conductance (PLC, percent, relative to a reference conductance at field capacity),
-	-Mean Ci/Ca (+ A weighted Ci/Ca), 
-	-Water summary (start/end content, total growing season input (mm)).
+- Summary Outputs (per year, see sumheader.csv for full list):
+	- Total Anet (mmol yr-1 m-2(leaf area))
+	- Total E (mm = mm3/mm2(ground area))
+	- Minimum whole plant conductance during the growing season (kghr-1m-2)
+	- Percent Loss Conductance (PLC, percent, relative to a reference conductance at field capacity)
+	- Mean Ci/Ca (+ A weighted Ci/Ca) 
+	- Water summary (start/end content, total growing season input (mm))
 
 ------------
+
+## Year Modes
 
 ### Independent year mode (default)
 
