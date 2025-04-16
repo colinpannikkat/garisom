@@ -657,7 +657,6 @@ def readin_data(filename: str) -> DataFrame:
     - `soilXHeight`: Height above soil surface for understory wind and gh 
                      in meters
     - `height`: Average tree height in meters
-    - `treeToPhotoLAI`: 
     - `leafPerBasal`: Initial leaf area per basal area (m2 m-2)
     - `leafWidth`: Leaf width in meters
     - `leafAngleParam`: Leaf angle parameter; CN 15.4
@@ -855,7 +854,6 @@ def build_config_param_files(data: DataFrame, out_data_path: str) -> None:
         df_param['i_leafAreaIndex'] = group['leafAreaIndex']
         df_param['i_soilXHeight'] = group['soilXHeight'].fillna(soil_Xheight)
         df_param['i_height'] = group['height']
-        df_param['i_treeToPhotoLAI'] = group['treeToPhotoLAI']
         df_param['i_leafPerBasal'] = group['leafPerBasal']
         df_param['i_leafWidth'] = group['leafWidth'].fillna(leaf_width)
         df_param['i_leafAngleParam'] = group['leafAngleParam'].fillna(leaf_angle)
