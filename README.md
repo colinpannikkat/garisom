@@ -118,6 +118,10 @@ soil_abs_sol = 0.94     # Absorptivity of soil surface for solar
 p_inc = 0.00075         # Pressure increment for curve generation in MPa
 rhizo_per = 50          # Average percent of whole plant resistance in rhizosphere
 leaf_per = 25           # Saturated % of tree resistance in leaves
+kmax = 0                # if kmax is not provided, set to 0 and model calculates
+                        # kmax based on LSC parameters (lsc/lsc_pref)
+lsc = 0                 
+lsc_pref = 0
 root_aspect = 1         # Max radius of root system per max depth
 root_beta = 0.95
 emiss = 0.97            # Long wave emissivity
@@ -127,6 +131,7 @@ q_max = 0.3             # "The value of α (q_max) was fixed at 0.3 mol elec
                         # mol−1 photon, based on an average C3 photosynthetic 
                         # quantum yield of 0.093 and a leaf absorptance of 0.8 
                         # (Long, Postl & Bolharnordenkampf 1993)." -- Medyln 2002
+mole_frac = 0.21        # Mole fraction (not used in the provided code)
 ground_water_p = 0      # Ground water pressure
 ground_water_d = 1      # Distance to ground water source in meters from the bottom of the root system
 ground_water = "n"      # Turns on/off groundwater flow
@@ -197,10 +202,10 @@ Configure plant traits and other parameters in __parameters.csv__ (expected inpu
 | Tree			| __i_aspect__			| Max radius of root system per max depth	|
 | Tree			| __i_rootBeta__		| Root biomass distribution is allocated based on the equation reported in Love et al (2019): M = 1 - Beta^d, where M is the fraction of biomass above depth d expressed in cm. We find the Beta that provides an M of 0.995 for the maximum rooting depth.	|
 | Hydraulics		| __i_leafPercRes__		| Saturated % of tree resistance in leaves	|
-| Hydraulics		| __i_kmaxTree__		| Kmax of tree in kg hr-1 m-2 MPa-1 per basal area (calculated in `file_builder.py`) |
+| Hydraulics		| __i_kmaxTree__		| Kmax of tree in kg hr-1 m-2 MPa-1 per basal area (can include this, or LSC/LSCpref)|
 | Hydraulics		| __i_pinc__			| Pressure increment for curve generation, (MPa) - higher is faster, but less accurate (setting too high can cause Newton-Rhapson root pressure solving failure)	|
 | Hydraulics		| __i_LSC__			| Leaf specific conductance in mmol m-2 s-1 MPa-1 (per leaf area), used in calculated kmaxTree |
-| Hydraulics		| __i_LSCpref__			| Water potential for LSC (deprecated and no longer used) |
+| Hydraulics		| __i_LSCpref__			| Water potential for LSC |
 | Hydraulics		| __i_cr__			| Root element Weibull parameter c	|
 | Hydraulics		| __i_br__			| Root element Weibull parameter b	|
 | Hydraulics		| __i_cs__			| Stem element Weibull parameter c	|

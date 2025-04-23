@@ -31,17 +31,6 @@ from tqdm import tqdm
 # Types
 from typing import Callable
 
-def _calc_leap_years(year: pd.Series):
-    '''
-    Determine if a year is a leap year using division method.
-
-    Input:
-    `year`: Series with `n` years.
-    
-    Output:
-    `DataFrame`: df with `year` and `days_in_year`.
-    '''
-    pass
 
 def _calc_thermal_time(climate_data: DataFrame) -> DataFrame:
     '''
@@ -721,6 +710,7 @@ def readin_data(filename: str) -> DataFrame:
         print("File unable to be opened. Check file format and columns.")
     return df
 
+# Not used here, calculated in model if LSC/LSC_pref is provided
 def _calculate_kmax(la_ba: pd.Series, 
                     lsc: pd.Series, 
                     r_leaf: pd.Series) -> pd.Series:
@@ -785,6 +775,10 @@ def build_config_param_files(data: DataFrame, out_data_path: str) -> None:
     p_inc = 0.00075         # Pressure increment for curve generation in MPa
     rhizo_per = 50          # Average percent of whole plant resistance in rhizosphere
     leaf_per = 25           # Saturated % of tree resistance in leaves
+    kmax = 0                # if kmax is not provided, set to 0 and model calculates
+                            # kmax based on LSC parameters (lsc/lsc_pref)
+    lsc = 0                 
+    lsc_pref = 0
     root_aspect = 1         # Max radius of root system per max depth
     root_beta = 0.95
     emiss = 0.97            # Long wave emissivity
@@ -863,8 +857,10 @@ def build_config_param_files(data: DataFrame, out_data_path: str) -> None:
         df_param['i_aspect'] = group['aspect'].fillna(root_aspect)
         df_param['i_rootBeta'] = group['rootBeta'].fillna(root_beta)
         df_param['i_leafPercRes'] = group['leafPercRes'].fillna(leaf_per)
-        df_param['i_kmaxTree'] = _calculate_kmax(df_param['i_leafPerBasal'], group['lsc'], df_param['i_leafPercRes'])
+        df_param['i_kmaxTree'] = group['kmax_tree'].fillna(kmax)
         df_param['i_pinc'] = group['p_inc'].fillna(p_inc)
+        df_param['i_LSC'] = group['lsc'].fillna(lsc)
+        df_param['i_LSCpref'] = group['lsc_pref'].fillna(lsc_pref)
         df_param['i_cr'] = group['cr']
         df_param['i_br'] = group['br']
         df_param['i_cs'] = group['cs']
