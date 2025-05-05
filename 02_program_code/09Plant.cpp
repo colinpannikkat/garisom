@@ -1059,6 +1059,8 @@ void Plant::readin() { //'inputs and calculates all parameters at the start
 
     xylem.rough = 0.01; //soil Zm, eqn 14.9, using table 5.1 for smooth surface, cm
     xylem.zdispl = 6.5 * xylem.rough; // soil d, eqn 14.9, using d = 6.5 Zm, eq 5.2,5.3
+    if (param.getModelParam("xh") < xylem.zdispl) // otherwise log in soilevap will turn NaN
+        param.setModelParam(xylem.zdispl + 1e-12, "xh");
     xylem.zh = 0.2 * xylem.rough; // roughness for temperature
 }
 
@@ -3374,20 +3376,20 @@ void Plant::canopypressure(const int &dd,
 
         } while (!(einc * p >= param.getModelParam("g_max") * xylem.leaf.lavpd[p] || total == 0 || (rmean < dpamax / DPA_MAX_CUTOFF && p > PROFT_MAX_RUN_MEAN && p > 15) || klossv[p] > 0.9 || p >= totalv));
 
-        //std::cout << "DPA MIN = " << dpamin << " DPA MAX = " << dpamax << std::endl;
         if (dpamin < 0.0 && dpamax > 0.0 && std::abs(dpamin) > dpamax)
         {
             // the profit went more negative than positive, so reset mid-day to predawn
+            std::cout << "Profit is negative, reseting pressure to PD." << std::endl;
             md = xylem.leaf.getPressureVirgin(0);
         }
 
         // [HNT] debug
         if (!(rmean < dpamax / DPA_MAX_CUTOFF))
         {
-            //std::cout << "Terminated sun layer opt without finding peak! At timestep dd = " << dd << std::endl;
+            // std::cout << "Terminated sun layer opt without finding peak! At timestep dd = " << dd << std::endl;
             if (einc * p >= param.getModelParam("g_max") * xylem.leaf.lavpd[p])
             {
-                ;// std::cout << "Terminated sun layer opt without finding peak: end case 1 einc * p >= param.getModelParam("g_max") * lavpd[p]" << std::endl;
+                // std::cout << "Terminated sun layer opt without finding peak: end case 1 einc * p >= param.getModelParam('g_max') * lavpd[p]" << std::endl;
             }
             if (total == 0)
             {
