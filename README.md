@@ -184,7 +184,7 @@ Configure plant traits and other parameters in __parameters.csv__ (expected inpu
 | Atmosphere		| __i_solarNoon__		| Solar noon correction from weather data in hours. (calculated in `file_builder.py`)	|
 | Atmosphere		| __i_emiss__			| Long wave emissivity.	|
 | Atmosphere		| __i_co2AmbPPM__		| Atmospheric/experiment CO2 ppm, it will update if working with multiple years.	|
-| Soil			| __i_layers__			| Number of soil layers (select 1-5).	|
+| Soil			| __i_layers__			| Number of soil layers (select 1-5). Can technically do greater than 5, but would need to add that pressure column to the data header. |
 | Soil			| __i_fieldCapFrac__		| Fraction that field capacity is of saturation (minus residual).	|
 | Soil			| __i_fieldCapPercInit__	| Percent field capacity for starting the season.	|
 | Soil			| __i_rockFrac__		| Fraction of soil volume as rocks (0-1).	|
@@ -247,7 +247,7 @@ All model configuration parameters in **configuration.csv**.
 | Hydraulics    | __i_cavitFatigue__    | Turns on/off xylem stress hysteresis to carry effects from previous growing season. Values: n (off); y (on). It allows for a weighted estimation of xylem vulnerability to embolism                                                                                                                                                                                                                                                                                                                                                                        |
 | Hydraulics    | __i_stemOnly__        | Turns on/off xylem stress hysteresis only in stem xylem. Values: n (off); y (on). When disabled it allows for a weighted estimation of xylem vulnerability to embolism for both stem and roots                                                                                                                                                                                                                                                                                                                                                             |
 | Community     | __i_multipleSP__      | Turns on/off whether our model configuration has 1 species per site (monodominant) or multiple species per site (diverse). Values: n (off); y (on).                                                                                                                                                                                                                                                                                                                                                                                                        |
-| Community     | __i_speciesN__        | Number of species/PFT to run the model. The species number indicated should correspond to the row in the parameter file.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| Community     | __i_speciesN__        | Number of species/PFT to run the model. The species number indicated should correspond to the row in the parameter file.                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | Forcing files | __i_ClimateData__     | Path to file with climate forcing variables __dataset.csv__                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | Forcing files | __i_GSData__          | Path to file with growing season data __seasonlimits.csv__                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 
@@ -285,22 +285,75 @@ To estimate the growing season, following [Sperry et al. 2019 PNAS](https://www.
 
 - Autosave is always enabled regardless of the setting, as this version of the model has no alternative output method. Output files will be generated in the working directory when the run completes.
 
-- Hourly Outputs (see dataheader.csv for full list):
-	- Pressures (predawn soil layer pressures, sun and shade "mid-day" canopy pressures, MPa)
-	- Water flows (mmol m-2s-1)
-	- PS assimilation (A, umol s-1m-2 (leaf area))
-	- Gain-risk optimized stomatal conductance to water (Gw, mmol m-2s-1)
-	- Element and whole plant conductances, (k, kghr-1m-2)
-	- Water content and deltas (mm)
-	- Ci 
+### Hourly Outputs
 
-- Summary Outputs (per year, see gs_data output in code for full list):
-	- Total Anet (mmol yr-1 m-2(leaf area))
-	- Total E (mm = mm3/mm2(ground area))
-	- Minimum whole plant conductance during the growing season (kghr-1m-2)
-	- Percent Loss Conductance (PLC, percent, relative to a reference conductance at field capacity)
-	- Mean Ci/Ca (+ A weighted Ci/Ca) 
-	- Water summary (start/end content, total growing season input (mm))
+| Column                | Unit                     | Description                                                                                                          |
+| --------------------- | ------------------------ | -------------------------------------------------------------------------------------------------------------------- |
+| P0                    | -MPa                     | Soil pressure for layer 0 (soil top layer)                                                                           |
+| P1                    | -MPa                     | Soil pressure for layer 1                                                                                            |
+| P2                    | -MPa                     | Soil pressure for layer 2                                                                                            |
+| P3                    | -MPa                     | Soil pressure for layer 3                                                                                            |
+| P4                    | -MPa                     | Soil pressure for layer 4                                                                                            |
+| P5                    | -MPa                     | Soil pressure for layer 5                                                                                            |
+| P-PD                  | -MPa                     | Predawns sunlit canopy pressure                                                                                      |
+| P-MD                  | -MPa                     | Midday sunlit canopy pressure                                                                                        |
+| E-MD                  | mmol s-1 m-2 (LA)        | Midday sunlit plant transpiration per leaf area                                                                      |
+| GW                    | mmol s-1 m-2 (LA)        | Sunlit canopy stomatal conductance per leaf area                                                                     |
+| leaf-air-vpd          | kPa                      | Sunlit leaf to air vapor pressure deficit. Difference in water vapor pressure between a leaf and the surrounding air |
+| leaftemp              | C                        | Sunlit leaf temperature in sunlit canopy layer                                                                       |
+| Anet-la               | $\mu$-mol s-1 m-2 (LA)   | Sunlit net carbon/photosynthetic assimilation per leaf area                                                          |
+| ci                    | Pa                       | Sunlit canopy partial pressure of CO2                                                                                |
+| PPFD                  | $\mu$-mol s-1m-2         | Sunlit photon flux density in sunlit canopy layer                                                                    |
+| S-P-MD                | -MPa                     | Midday sunlit canopy pressure                                                                                        |
+| S-E-MD                | mmol s-1 m-2 (LA)        | Midday shaded plant transpiration per leaf area                                                                      |
+| S-GW                  | mmol s-1 m-2 (LA)        | Shaded canopy stomatal conductance per leaf area                                                                     |
+| S-leaf-air-vpd        | kPa                      | Shaded leaf to air vapor pressure deficit.                                                                           |
+| S-Anet-la             | $\mu$-mol s-1 m-2 (LA)   | Shaded net carbon/photosynthetic assimilation per leaf area                                                          |
+| S-ci                  | Pa                       | Shaded canopy partial pressure of CO2                                                                                |
+| S-PPFD                | $\mu$-mol s-1m-2         | Shaded photon flux density in sunlit canopy layer                                                                    |
+| S-E-Tree              | mmol s-1 m-2 (LA)        | Weighted mean of transpiration in tree per leaf area                                                                 |
+| Anet-tree             | $\mu$-mol s-1 m-2 (LA)   | Total carbon assimilation in tree per leaf area                                                                      |
+| Pcrit                 | MPa                      | Critical pressure for tree                                                                                           |
+| Ecrit                 | $\mu$-mol h-1 m-2 (LA)   | Transpiration at Pcrit per leaf area                                                                                 |
+| P-leaf                | MPa                      | Composite leaf pressure                                                                                              |
+| P-stem                | MPa                      | Composite stem pressure                                                                                              |
+| P-root                | MPa                      | Composite root pressure                                                                                              |
+| K-stem                | kg hr-1 m-2 (BA)         | Composite stem hydraulic conductance per basal area                                                                  |
+| K-leaf                | kg hr-1 m-2 (BA)         | Composite leaf hydraulic conductance per basal area                                                                  |
+| K-plant               | kg hr-1 m-2 (BA)         | Composite plant hydraulic conductance per basal area                                                                 |
+| K-xylem               | kg hr-1 m-2 (BA)         | Total xylem hydraulic conductance per basal area                                                                     |
+| K-root-1              | kg hr-1 m-2 (BA)         | Hydraulic conductance for root layer 1 per basal area                                                                |
+| K-root-2              | kg hr-1 m-2 (BA)         | Hydraulic conductance for root layer 2 per basal area                                                                |
+| K-root-3              | kg hr-1 m-2 (BA)         | Hydraulic conductance for root layer 3 per basal area                                                                |
+| K-root-4              | kg hr-1 m-2 (BA)         | Hydraulic conductance for root layer 4 per basal area                                                                |
+| K-root-5              | kg hr-1 m-2 (BA)         | Hydraulic conductance for root layer 5 per basal area                                                                |
+| K-root-all            | kg hr-1 m-2 (BA)         | Total hydraulic conductance of roots per basal area at midday                                                        |
+| E-root-1              | mmol s-1 m-2 (LA)        | Total root uptake for layer 1 per leaf area                                                                          |
+| E-root-2              | mmol s-1 m-2 (LA)        | Total root uptake for layer 2 per leaf area                                                                          |
+| E-root-3              | mmol s-1 m-2 (LA)        | Total root uptake for layer 3 per leaf area                                                                          |
+| E-root-4              | mmol s-1 m-2 (LA)        | Total root uptake for layer 4 per leaf area                                                                          |
+| E-root-5              | mmol s-1 m-2 (LA)        | Total root uptake for layer 5 per leaf area                                                                          |
+| water-content         | mm                       | Root zone water content in mm (= m^3/m^2 (GA))                                                                       |
+| water-content-delta   | mm timestep-1            | Change in water-content over previous time-step                                                                      |
+| end-rain              | mm timestep-1            | Rain input per previous time-step                                                                                    |
+| end-ground-water      | mm timestep-1            | Groundwater input per previous time-step                                                                             |
+| end-E                 | mm timestep-1            | Transpiration per time-step                                                                                          |
+| end-drainage          | mm timestep-1            | Total drainage per time-step                                                                                         |
+| end-soil-evap         | mm timestep-1            | Evaporative water loss per time-step                                                                                 |
+| end-ET                | mm timestep-1            | Total evaporation (E + soil-evap) per time-step                                                                      |
+| end-Anet-la           | mmol timestep-1 m-2 (LA) | Net carbon assimilation per time-step per leaf area                                                                  |
+| end-total-water-input | mm timestep-1            | Total water input (rain + ground-water) per time-step                                                                |
+| end-PLC-plant         | %                        | Percent loss of conductivity for plant in previous time-step                                                         |
+| end-PLC-xylem         | %                        | Percent loss of conductivity for xylem in previous time-step                                                         |
+| end-runoff            | mm timestep-1            | Excess root zone water per time-step                                                                                 |
+
+### Summary Outputs
+- Total Anet (mmol yr-1 m-2(leaf area))
+- Total E (mm = mm3/mm2(ground area))
+- Minimum whole plant conductance during the growing season (kghr-1m-2)
+- Percent Loss Conductance (PLC, percent, relative to a reference conductance at field capacity)
+- Mean Ci/Ca (+ A weighted Ci/Ca) 
+- Water summary (start/end content, total growing season input (mm))
 
 ------------
 
