@@ -23,6 +23,7 @@
 #define CONFIG_FILE_PATH "../03_test_data/configuration.csv"
 #define PARAMETER_FILE_PATH "../03_test_data/parameters.csv"
 #define DATA_HEADER_FILE_PATH "./dataheader.csv"
+#define OUT_DIR "."
 
 // Config Setting (used for determining which row of configuration file to use)
 #define CONFIG_SETTING 0

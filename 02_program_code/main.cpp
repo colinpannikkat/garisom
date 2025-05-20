@@ -12,6 +12,7 @@ int main(int argc, char *argv[])
     std::string param_data = CONFIG_FILE_PATH;
     std::string config_data = PARAMETER_FILE_PATH;
     int config_setting = CONFIG_SETTING; // default to just use first row in configuration
+    std::string output_dir = OUT_DIR;
 
     // If arguments are provided, use provided config and param data files, and set config_setting
     if (argc > 1) {
@@ -21,7 +22,8 @@ int main(int argc, char *argv[])
             std::cout << "  parameter_file: Path to the parameter data file (default: " << PARAMETER_FILE_PATH << ")" << std::endl;
             std::cout << "  config_file: Path to the configuration data file (default: " << CONFIG_FILE_PATH << ")" << std::endl;
             std::cout << "  config_setting: Configuration setting index (default: " << CONFIG_SETTING + 1 << ")" << std::endl;
-            std::cout << "Example: ./run params.txt config.txt 2" << std::endl;
+            std::cout << "  output_dir: Path to output directory (default: " << OUT_DIR << ")" << std::endl;
+            std::cout << "Example: ./run params.txt config.txt 2 ./out" << std::endl;
             exit(0);
         } else {
             param_data = argv[1];
@@ -32,6 +34,9 @@ int main(int argc, char *argv[])
 
         if (argc > 3) // config setting provided
             config_setting = std::atoi(argv[3]) - 1;
+
+        if (argc > 4) // output dir specified
+            output_dir = argv[4];
     }
 
     std::cout << " -------------------------------------------------" << std::endl;
@@ -46,7 +51,7 @@ int main(int argc, char *argv[])
         std::cout << "Unrecoverable model failure!" << std::endl;
         std::cout << "Model stops " << std::endl;
         std::cout << std::endl;
-        return 0; // failure, unrecoverable
+        return 1; // failure, unrecoverable
     }
     std::cout << " ------------------------------------------------" << std::endl;
     std::cout << "|              MODEL CONFIGURATION               |" << std::endl;
@@ -91,6 +96,10 @@ int main(int argc, char *argv[])
     int dd = 0,
     successCode = 0;
 
+    std::string species = plantModel->param_data("i_sp", plantModel->species_no);
+    std::string region = plantModel->param_data("i_region", plantModel->species_no);
+    std::string site = plantModel->param_data("i_site", plantModel->species_no);
+
     do //loop through time steps
         {
 
@@ -99,7 +108,7 @@ int main(int argc, char *argv[])
 
             if (successCode == -1)
             {
-                plantModel->data.output("test_fail_output.csv");
+                plantModel->data.output(output_dir + "/test_fail_output_" + species + "_" + region + "_" + site + ".csv");
                 std::cout << "Unrecoverable model failure!" << std::endl;
                 return 1; // failure, unrecoverable
             }
@@ -125,12 +134,9 @@ int main(int argc, char *argv[])
             if (dd % 1000 == 0)
                 std::cout << "Timestep " << dd << " completed" << std::endl;
         } while (!(plantModel->data.getColumnValue("julian-day", dd + 1) < 0.01)); // loop until the jd value on next row is zero -- it's an integer, but everything is stored in the array as double
-    
-    std::string species = plantModel->param_data("i_sp", plantModel->species_no);
-    std::string region = plantModel->param_data("i_region", plantModel->species_no);
-    std::string site = plantModel->param_data("i_site", plantModel->species_no);
-    plantModel->data.output("timesteps_output_" + species + "_" + region + "_" + site + ".csv");
-    plantModel->gs_data.output("sum_output_" + species + "_" + region + "_" + site + ".csv");
+
+    plantModel->data.output(output_dir + "/timesteps_output_" + species + "_" + region + "_" + site + ".csv");
+    plantModel->gs_data.output(output_dir + "/sum_output_" + species + "_" + region + "_" + site + ".csv");
 
     delete plantModel;
 
