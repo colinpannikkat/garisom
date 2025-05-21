@@ -100,7 +100,7 @@ source env/bin/activate
 ```
 **Then install the required packages given the requirements file.**
 ```
-pip -r requirements.txt
+pip install -r requirements.txt
 ```
 
 **b)** Users should then prepare an initial data file using `data_template.csv`, some values may be optional and will be replaced by defaults if left empty.
