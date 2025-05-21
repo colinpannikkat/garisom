@@ -6,6 +6,7 @@ from argparse import ArgumentParser
 import json
 import uuid
 from collections import defaultdict
+from tqdm import tqdm
 
 import numpy as np
 import pandas as pd
@@ -88,6 +89,7 @@ def wrapped_garisom(
 
     with TemporaryDirectory() as tmp:
         print('created temporary directory', tmp)
+        pbar = tqdm(total=N)
 
         with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
             futures = {
@@ -106,6 +108,7 @@ def wrapped_garisom(
             }
 
             for future in as_completed(futures):
+                pbar.update(1)
                 idx = futures[future]
                 try:
                     out = future.result()
@@ -113,6 +116,8 @@ def wrapped_garisom(
                 except Exception as e:
                     print(f"Subprocess for index {idx} failed: {e}") 
                     res[:, idx, :] = np.nan
+
+        pbar.close()
 
     return res
 
