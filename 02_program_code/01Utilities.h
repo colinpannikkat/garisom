@@ -19,6 +19,7 @@
 #include <unordered_map>
 #include <assert.h>
 #include <iomanip>
+#include <algorithm>
 
 // Input File Names
 #define CONFIG_FILE_PATH "../03_test_data/configuration.csv"
