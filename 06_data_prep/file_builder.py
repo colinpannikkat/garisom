@@ -837,7 +837,7 @@ def build_config_param_files(data: DataFrame, out_data_path: str) -> None:
         df_param['i_gWaterP'] = group['gWaterP'].fillna(ground_water_p)
         df_param['i_gWaterDist'] = group['gWaterDist'].fillna(ground_water_d)
         df_param['i_atmTrans'] = group['atmTrans'].fillna(atm_trans)
-        df_param['i_solarNoon'] = _solar_noon_correction(df_param['i_longitude'])
+        df_param['i_solarNoon'] = 0 # _solar_noon_correction(df_param['i_longitude']), your mileage may vary by using this
         df_param['i_emiss'] = group['emiss'].fillna(emiss)
         df_param['i_co2AmbPPM'] = group['co2AmbPPM'].fillna(co2)
         df_param['i_layers'] = group['layers'].fillna(soil_layers)
