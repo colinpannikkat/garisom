@@ -23,7 +23,8 @@ def run_single_model(
         tmp_dir: str,
         params: pd.DataFrame,
         POP_NUM: int,
-        CONFIG_FILE: str
+        CONFIG_FILE: str,
+        MODEL_DIR: str
     ) -> list[np.ndarray]:
     
     TMP_DIR = f"{tmp_dir}/{proc_num}"
@@ -46,7 +47,7 @@ def run_single_model(
             str(POP_NUM),
             TMP_DIR
         ],
-        cwd="/Users/colinpannikkat/Documents/schoolwork/FEL/garisom/02_program_code/",
+        cwd=MODEL_DIR,
         stdout=out,
         stderr=out
     )
@@ -73,6 +74,7 @@ def wrapped_garisom(
         in_names: list,
         out_names: list, 
         MAX_WORKERS: int,
+        MODEL_DIR: str,
         params: pd.DataFrame,
         POP_NUM: int,
         CONFIG_FILE: str,
@@ -98,7 +100,8 @@ def wrapped_garisom(
                     tmp,
                     params,
                     POP_NUM,
-                    CONFIG_FILE
+                    CONFIG_FILE,
+                    MODEL_DIR
                 ): i for i in range(N)
             }
 
@@ -272,6 +275,7 @@ def main():
     parser = ArgumentParser()
     parser.add_argument("--input", "-i", help="File path to sensitivity analysis input file.", required=True, type=str)
     parser.add_argument("--output", "-o", help="Directory path for output files.", default=".", type=str)
+    parser.add_argument("--model", "-m", help="Directory path to model executable.",required=True, type=str)
     parser.add_argument("--workers", "-w", help="Number of workers to run SA with.", default=4, type=int)
     parser.add_argument("--samples", "-s", help="Number of samples to run SA with, must be a multiple of two.", default=2**4, type=int)
     parser.add_argument("--pop", "-p", help="Population number to run for model.", default=1, type=int)
@@ -284,6 +288,7 @@ def main():
     POP_NUM = args.pop
     MAX_WORKERS = args.workers
     SAMPLES = args.samples
+    MODEL_DIR = os.path.join(args.model)
     OUT_DIR = os.path.join(args.output)
     RAND_DIR = str(uuid.uuid4())
     PLT_DIR = os.path.join(OUT_DIR, "plots", RAND_DIR)
@@ -323,6 +328,7 @@ def main():
         problem['names'],
         problem['outputs'],
         MAX_WORKERS,
+        MODEL_DIR,
         params,
         POP_NUM,
         CONFIG_FILE,
