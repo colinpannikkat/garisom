@@ -18,6 +18,7 @@
 #include <cstring>
 #include <unordered_map>
 #include <assert.h>
+#include <iomanip>
 
 // Input File Names
 #define CONFIG_FILE_PATH "../03_test_data/configuration.csv"
