@@ -318,6 +318,7 @@ def main():
     # Save the problem definition to a JSON file in the results directory
     problem_file = os.path.join(RES_DIR, "problem.json")
     with open(problem_file, "w") as f:
+        problem['arguments'] = vars(args) # add arguments to problem
         json.dump(problem, f, indent=4)
 
     D = problem['num_vars']
