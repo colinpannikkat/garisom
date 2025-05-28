@@ -1,0 +1,28 @@
+{
+    "num_vars": 4,
+    "names": [
+        "i_baperga",
+        "i_height",
+        "i_leafAreaIndex", 
+        "i_rootBeta"
+    ],
+    "bounds": [
+        [22.4928564, 64.7275636],
+        [0.9392, 2.2328],
+        [1.88, 5.34],
+        [0.1, 1]
+    ],
+    "outputs": [
+        "P-PD", 
+        "P-MD",
+        "GW",
+        "K-plant",
+        "E-MD"
+    ],
+    "plot_settings": {
+        "start_day": 121,
+        "end_day": 236,
+        "average": false,
+        "metric": "mape"
+    }
+}
