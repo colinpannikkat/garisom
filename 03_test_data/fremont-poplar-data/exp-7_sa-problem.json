@@ -1,0 +1,22 @@
+{
+    "num_vars": 1,
+    "names": [
+        "i_height"
+    ],
+    "bounds": [
+        [1.42, 1.75]
+    ],
+    "outputs": [
+        "P-PD", 
+        "P-MD",
+        "GW",
+        "K-plant",
+        "E-MD"
+    ],
+    "plot_settings": {
+        "start_day": 121,
+        "end_day": 236,
+        "average": false,
+        "metric": "mape"
+    }
+}

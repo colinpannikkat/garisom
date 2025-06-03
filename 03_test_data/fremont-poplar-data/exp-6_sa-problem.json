@@ -1,0 +1,22 @@
+{
+    "num_vars": 1,
+    "names": [
+        "i_baperga"
+    ],
+    "bounds": [
+        [38.16, 49.06]
+    ],
+    "outputs": [
+        "P-PD", 
+        "P-MD",
+        "GW",
+        "K-plant",
+        "E-MD"
+    ],
+    "plot_settings": {
+        "start_day": 121,
+        "end_day": 236,
+        "average": false,
+        "metric": "mape"
+    }
+}
