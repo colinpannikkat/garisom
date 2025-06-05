@@ -1,5 +1,0 @@
-i_gWaterEnable,i_soilRedEnable,i_soilEvapEnable,i_rainEnable,i_useGSDataStress,i_useGSDataOpt,i_refilling,i_predawnsMode,i_cavitFatigue,i_stemOnly,i_multipleSP,i_speciesN,i_ClimateData,i_GSData
-n,y,y,y,n,n,n,n,n,y,y,1,/Users/colinpannikkat/Documents/schoolwork/FEL/garisom/03_test_data/fremont-poplar-data/DBG/dataset.csv,/Users/colinpannikkat/Documents/schoolwork/FEL/garisom/03_test_data/fremont-poplar-data/DBG/seasonlimits.csv
-n,y,y,y,n,n,n,n,n,y,y,2,/Users/colinpannikkat/Documents/schoolwork/FEL/garisom/03_test_data/fremont-poplar-data/DBG/dataset.csv,/Users/colinpannikkat/Documents/schoolwork/FEL/garisom/03_test_data/fremont-poplar-data/DBG/seasonlimits.csv
-n,y,y,y,n,n,n,n,n,y,y,3,/Users/colinpannikkat/Documents/schoolwork/FEL/garisom/03_test_data/fremont-poplar-data/DBG/dataset.csv,/Users/colinpannikkat/Documents/schoolwork/FEL/garisom/03_test_data/fremont-poplar-data/DBG/seasonlimits.csv
-n,y,y,y,n,n,n,n,n,y,y,4,/Users/colinpannikkat/Documents/schoolwork/FEL/garisom/03_test_data/fremont-poplar-data/DBG/dataset.csv,/Users/colinpannikkat/Documents/schoolwork/FEL/garisom/03_test_data/fremont-poplar-data/DBG/seasonlimits.csv
