@@ -3142,10 +3142,10 @@ void Plant::canopypressure(const int &dd,
            dpamin = 0.0;
         //    rmean = 0.0;
 
-    double klossv[CURVE_MAX] = {0},
-           amaxfrac[CURVE_MAX] = {0},
-           amaxfracsh[CURVE_MAX] = {0},
-           dpa[CURVE_MAX] = {0};
+    std::vector<double> klossv(CURVE_MAX, 0.0),
+                        amaxfrac(CURVE_MAX, 0.0),
+                        amaxfracsh(CURVE_MAX, 0.0),
+                        dpa(CURVE_MAX, 0.0);
 
     int check = 0,
         totalv = 0,

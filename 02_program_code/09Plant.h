@@ -57,7 +57,7 @@ class Plant {
                     sevap, 
                     raining,
                     oldraining, 
-                    useGSData, 
+                    useGSData = false, 
                     mode_predawns, 
                     refilling, 
                     hysteresis,
@@ -106,7 +106,7 @@ class Plant {
                     kmin,               // k-min for the plant
                     e_p[CURVE_MAX] = {0};    // whole plant transpiration curve, likely not needed now since only one xylem is typically used
 
-        long        gs_yearIndex,       // this is a counter from 0 (for the first year) indicating how many years have passed
+        long        gs_yearIndex = 0,       // this is a counter from 0 (for the first year) indicating how many years have passed
                                         // get the actual year from gs_ar_years(gs_yearIndex)
                                         // this avoids having to make year an input column in the model -- will just count how many years have passed when running
                     gs_prevDay,

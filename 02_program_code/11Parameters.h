@@ -29,8 +29,8 @@ class Parameters {
         std::vector<double> gs_ar_ppm;
 
         /* Saved weibull params */
-        double stem_b_wb[MAX_YEARS];
-        double root_b_wb[MAX_YEARS];
+        double stem_b_wb[MAX_YEARS] = {};
+        double root_b_wb[MAX_YEARS] = {};
     
     public:
 
@@ -39,7 +39,7 @@ class Parameters {
         double& getModelParam(const std::string &param_name);
         double& operator()(const std::string &param_name);
 
-        void setModelParam(double value, const std::string &param_name);
+        void setModelParam(double value, const std::string param_name);
 
         int& getGsArYear(int index);
         void setGsArYear(int index, int value);

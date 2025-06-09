@@ -22,7 +22,7 @@ double& Parameters::getModelParam(const std::string &param_name) {
     throw std::invalid_argument("Error: Column name '" + param_name + "' does not exist in model_parameters");
 }
 
-void Parameters::setModelParam(double value, const std::string &param_name) {
+void Parameters::setModelParam(double value, const std::string param_name) {
     model_parameters[param_name] = value;
 }
 
