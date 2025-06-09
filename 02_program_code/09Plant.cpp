@@ -1377,7 +1377,7 @@ twentyMarker:
                                  xylem.leaf.lavpdsh, 
                                  xylem.leaf.leaftempsh); //'gets shade layer photosynthesis
 
-    } while (!(sum == layers || test == 1 || night == "y" && (dd > 1 && !isNewYear) || check >= 500)); //'loop to complete failure unless it//'s night
+    } while (!(sum == layers || test == 1 || night == "y" && (dd > 1 && !isNewYear) || check >= 500) && (p < CURVE_MAX)); //'loop to complete failure unless it//'s night
 
     if (chalk > 0) { //if//
         reset_guess = 0; //'done our best
