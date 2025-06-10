@@ -108,7 +108,8 @@ int main(int argc, char *argv[])
 
             if (successCode == -1)
             {
-                plantModel->data.output(output_dir + "/test_fail_output_" + species + "_" + region + "_" + site + ".csv");
+                plantModel->data.output(output_dir + "/timesteps_output_" + species + "_" + region + "_" + site + ".csv");
+                plantModel->gs_data.output(output_dir + "/sum_output_" + species + "_" + region + "_" + site + ".csv");
                 std::cout << "Unrecoverable model failure!" << std::endl;
                 return 1; // failure, unrecoverable
             }
