@@ -523,7 +523,7 @@ int Component::calc_pressure(const double &e, const double &bottom_pressure, con
     do //find efinish
     {
         j = j + 1;
-        if (e_p[j] == 0) {
+        if ((j == FLOW_ITER_LIMIT) || (e_p[j] == 0)) {
             return 1;
         }
     } while (!(e_p[j] > efinish));
