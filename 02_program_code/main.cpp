@@ -40,7 +40,12 @@ int main(int argc, char *argv[])
 
         if (argc > 4) { // output dir specified
             output_dir = argv[4];
-            std::filesystem::create_directories(output_dir);
+
+            if (std::filesystem::create_directories(output_dir)) {
+                printf("Directory %s made successfully.\n\n", output_dir.c_str());
+            } else {
+                printf("Error creating directory %s, it either exists already, or some other error has occured.\n\n", output_dir.c_str());
+            }
         }
     }
 
