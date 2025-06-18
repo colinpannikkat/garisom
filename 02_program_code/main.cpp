@@ -1,6 +1,9 @@
 #include "01Utilities.h"
 #include "09Plant.h"
 
+// For making output directory
+#include <filesystem>
+
 int main(int argc, char *argv[])
 {
     std::cout << " -------------------------------------------------" << std::endl;
@@ -17,13 +20,13 @@ int main(int argc, char *argv[])
     // If arguments are provided, use provided config and param data files, and set config_setting
     if (argc > 1) {
         if (strcmp(argv[1], "--help") == 0) {
-            std::cout << "Usage: ./run [parameter_file] [config_file] [config_setting]" << std::endl;
+            std::cout << "Usage: ./run [parameter_file] [config_file] [config_setting] [output_dir]" << std::endl;
             std::cout << "All arguments are optional:" << std::endl;
             std::cout << "  parameter_file: Path to the parameter data file (default: " << PARAMETER_FILE_PATH << ")" << std::endl;
             std::cout << "  config_file: Path to the configuration data file (default: " << CONFIG_FILE_PATH << ")" << std::endl;
             std::cout << "  config_setting: Configuration setting index (default: " << CONFIG_SETTING + 1 << ")" << std::endl;
             std::cout << "  output_dir: Path to output directory (default: " << OUT_DIR << ")" << std::endl;
-            std::cout << "Example: ./run params.txt config.txt 2 ./out" << std::endl;
+            std::cout << "Example: ./run params.csv config.csv 2 ./out" << std::endl;
             exit(0);
         } else {
             param_data = argv[1];
@@ -35,8 +38,10 @@ int main(int argc, char *argv[])
         if (argc > 3) // config setting provided
             config_setting = std::atoi(argv[3]) - 1;
 
-        if (argc > 4) // output dir specified
+        if (argc > 4) { // output dir specified
             output_dir = argv[4];
+            std::filesystem::create_directories(output_dir);
+        }
     }
 
     std::cout << " -------------------------------------------------" << std::endl;
