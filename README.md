@@ -57,7 +57,7 @@ make
 __b.4)__ Run this program from the same folder with this command:
 
 ```
-./run [param_data_file] [config_data_file] [config_setting]
+./run [param_data_file] [config_data_file] [config_setting] [output_path]
 ```
 
 The `param_data_file`, `config_data_file`, and `config_setting` are optional command line arguments. If not provided, the default file paths will be used which are defined in `01Utilities.h`.
