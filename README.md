@@ -1,6 +1,6 @@
 # Carbon Gain vs Hydraulic Risk Stomatal Optimization Model V3.0
 
-**Ga***in* **RI***sk* **S***tomatal* **O***ptimization* **M***odel* (**GARISOM**)
+***Ga****in* ***RI****sk* ***S****tomatal* ***O****ptimization* ***M****odel* (**GARISOM**)
 
 __Coding language:__ C++
 
