@@ -103,7 +103,7 @@ int main(int argc, char *argv[])
 
     plantModel->resetLayerStatus();
 
-    int dd = 0,
+    int dd = -1,
     successCode = 0;
 
     std::string species = plantModel->param_data("i_sp", plantModel->species_no);

@@ -1152,7 +1152,7 @@ int Plant::modelTimestepIter(int &dd) {
     double laperba = param.getModelParam("leaf_per_basal");
     xylem.leaf.emiss = param.getModelParam("emiss");
 
-    if (dd == 1 || isNewYear)
+    if (dd == 0 || isNewYear)
     {
         failure = 0;
         failspot = "no failure";
@@ -1219,7 +1219,7 @@ int Plant::modelTimestepIter(int &dd) {
         }
     }
     
-    if ( dd == 1 || isNewYear){ // Get CO2 for current year
+    if ( dd == 0 || isNewYear){ // Get CO2 for current year
         if (useGSData)
             carbon.ca = getCarbonByYear(yearVal); // get current year atmospheric CO2
         else
@@ -1232,7 +1232,7 @@ int Plant::modelTimestepIter(int &dd) {
 
     int jd = data.getColumnValue("julian-day", dd); //'julian day
 
-    if (dd > 1 && !isNewYear) { //if// //'set timestep
+    if (dd > 0 && !isNewYear) { //if// //'set timestep
         if (tod < data.getColumnValue("standard-time", dd)) { //if// //'same old day getting older
             timestep = data.getColumnValue("standard-time", dd) - tod;
         }
@@ -1377,7 +1377,7 @@ twentyMarker:
                                  xylem.leaf.lavpdsh, 
                                  xylem.leaf.leaftempsh); //'gets shade layer photosynthesis
 
-    } while (!(sum == layers || test == 1 || night == "y" && (dd > 1 && !isNewYear) || check >= 500) && ((p + 1) < CURVE_MAX)); //'loop to complete failure unless it//'s night
+    } while (!(sum == layers || test == 1 || night == "y" && (dd > 0 && !isNewYear) || check >= 500) && ((p + 1) < CURVE_MAX)); //'loop to complete failure unless it//'s night
 
     if (chalk > 0) { //if//
         reset_guess = 0; //'done our best
@@ -1390,7 +1390,7 @@ twentyMarker:
 
         goto fortyMarker; //'got as much of the composite curve as is going to happen
     }//
-    if (dd == 1 || isNewYear || night == "n") { //if//
+    if (dd == 0 || isNewYear || night == "n") { //if//
 
         if (check >= 500) { //if// //'try once more
                             //'Stop
@@ -1574,7 +1574,7 @@ fortyMarker:
     }// //'failure IF (basically...failure can//'t happen!)
 
 
-    if (dd == 1 || isNewYear) { //if// //'NOTE: must be sure that pcritsystem is computed for dd=1!!! (i.e., it//'s not computed at night)
+    if (dd == 0 || isNewYear) { //if// //'NOTE: must be sure that pcritsystem is computed for dd=1!!! (i.e., it//'s not computed at night)
         int x = pcritsystem; //'estimate of "permanent wilting point"
         for (int z = 1; z <= layers; z++)//z = 1 To layers
         {
@@ -1780,11 +1780,11 @@ void Plant::getsoilwetness(const int &dd,
     std::vector<double> thetafracres(layers+1),
                         thetafracfc(layers+1),
                         thetafc(layers+1);
-    if (dd == 1 || isNewYear) { //if// //'every layer starts at initial % of field capacity
+    if (dd == 0 || isNewYear) { //if// //'every layer starts at initial % of field capacity
 
         double waterold = 0; //'total root zone water content (mmol m-2 ground area)
 
-        if (dd != 1) // if not first iteration and not new year, then get the previous year water content
+        if (dd != 0) // if not first iteration and not new year, then get the previous year water content
             waterold = data.getColumnValue("water-content", dd - 1) / 1000;
 
         if (!(useGSData && gs_yearIndex > 0))
@@ -1822,7 +1822,7 @@ void Plant::getsoilwetness(const int &dd,
         // [/HNT]
     }// //'dd=1 if
         //'if pet = "y" Or pet = "n" { //if// //'do the original routine...doesn//'t run for PET scenario
-    if ((dd > 1 && !isNewYear) || (useGSData && gs_yearIndex > 0)) { //if// //'get flows that happened during previous timestep
+    if ((dd > 0 && !isNewYear) || (useGSData && gs_yearIndex > 0)) { //if// //'get flows that happened during previous timestep
         for (int z = 0; z < layers; z++)//z = 0 To layers - 1 //'transpiration, root and soil redistribution
         {
             if (night == "n") { // if it's day, must adjust elayer for sun vs. shade weighting
@@ -1967,7 +1967,7 @@ void Plant::getsoilwetness(const int &dd,
         } //for//z
 
         //'now get water content change over PREVIOUS time step
-        if ((dd > 1 && !isNewYear) || (useGSData && gs_yearIndex > 0)) { //if// //'now get updated new water content
+        if ((dd > 0 && !isNewYear) || (useGSData && gs_yearIndex > 0)) { //if// //'now get updated new water content
 
             double waternew = 0;
             double waterold = data.getColumnValue("water-content", dd - 1) / 1000;
@@ -1999,7 +1999,7 @@ void Plant::getsoilwetness(const int &dd,
         }// //'dd>1 if
     }// //'dd>1 if
         //'}////'pet if
-    if (dd > 1 && !isNewYear) { //if//
+    if (dd > 0 && !isNewYear) { //if//
         tempDouble = transpiration_tree * 3600 * timestep * laperba * param.getModelParam("ba_per_ga") * 0.000000018 * 1000;
         data.setColumnValue(tempDouble, dd, "end-E"); //transpiration_tree * 3600 * timestep * laperba * param.getModelParam("ba_per_ga") * 0.000000018 * 1000; //'transpiration per ground area in mm m-2 per timestop
         if (gs_inGrowSeason) // only record growing season E (should not be any non-GS E, but just for safety)
