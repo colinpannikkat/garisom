@@ -43,80 +43,80 @@ class Plant {
                     data_header_file_path, 
                     night;      // know whether is night
 
-        int         species_no, 
-                    stage_id,
-                    unknowns,
-                    halt,
-                    haltsh,         // track when hydraulics fail
-                    layers,
-                    tod;
+        int         species_no = 0, 
+                    stage_id = 0,
+                    unknowns = 0,
+                    halt = 0,
+                    haltsh = 0,         // track when hydraulics fail
+                    layers = 0,
+                    tod = 0;
 
-        bool        ground,
-                    oldground, 
-                    soilred, 
-                    sevap, 
-                    raining,
-                    oldraining, 
+        bool        ground = false,
+                    oldground = false, 
+                    soilred = false, 
+                    sevap = false, 
+                    raining = false,
+                    oldraining = false, 
                     useGSData = false, 
-                    mode_predawns, 
-                    refilling, 
-                    hysteresis,
-                    stem_only,
-                    iter_gwEnable,
-                    iter_ffcEnable,
-                    iter_bagaEnable,
-                    iter_useAreaTable,
-                    iter_yearsAsCount,
-                    iter_runSupplyCurve,
-                    isNewYear,
-                    gs_inGrowSeason,
-                    gs_doneFirstDay, //done all first day of grow season calculations?
-                    rainEnabled,
-                    oldrainEnabled;
+                    mode_predawns = false, 
+                    refilling = false, 
+                    hysteresis = false,
+                    stem_only = false,
+                    iter_gwEnable = false,
+                    iter_ffcEnable = false,
+                    iter_bagaEnable = false,
+                    iter_useAreaTable = false,
+                    iter_yearsAsCount = false,
+                    iter_runSupplyCurve = false,
+                    isNewYear = false,
+                    gs_inGrowSeason = false,
+                    gs_doneFirstDay = false, //done all first day of grow season calculations?
+                    rainEnabled = false,
+                    oldrainEnabled = false;
 
-        double      iter_gwInc,
-                    iter_gwStart,
-                    iter_gwEnd,
-                    iter_ffcInc,
-                    iter_ffcStart,
-                    iter_ffcEnd,
-                    iter_bagaInc,
-                    iter_bagaStart,
-                    iter_bagaEnd,
-                    iter_bagaRef,
-                    iter_bagaCutoff,
-                    max_plc_x,
-                    gwflow,             // Used like twice, needed for soilwetness and deepflow
-                    drainage,           // used in deepflow
-                    runoff,
-                    soilevap,           // set in soilevaporation(), used in soilwetness and soilevaporation, maybe just declare local in modelTimeStepIter and pass?
-                    iter_refK,          // used in getsoilwetness, never initialized though?
-                    kpday1,
-                    kxday1,             // this and above used in getsoilwetness
-                    transpiration_tree, // used in multiple functions, need to preserve old value
-                    transpiration, 
-                    transpirationsh, 
-                    md, 
-                    mdsh,                // need to preserve this and three above so during night we still retain values
-                    rmean,
+        double      iter_gwInc = 0.0,
+                    iter_gwStart = 0.0,
+                    iter_gwEnd = 0.0,
+                    iter_ffcInc = 0.0,
+                    iter_ffcStart = 0.0,
+                    iter_ffcEnd = 0.0,
+                    iter_bagaInc = 0.0,
+                    iter_bagaStart = 0.0,
+                    iter_bagaEnd = 0.0,
+                    iter_bagaRef = 0.0,
+                    iter_bagaCutoff = 0.0,
+                    max_plc_x = 0.0,
+                    gwflow = 0.0,             // Used like twice, needed for soilwetness and deepflow
+                    drainage = 0.0,           // used in deepflow
+                    runoff = 0.0,
+                    soilevap = 0.0,           // set in soilevaporation(), used in soilwetness and soilevaporation, maybe just declare local in modelTimeStepIter and pass?
+                    iter_refK = 0.0,          // used in getsoilwetness, never initialized though?
+                    kpday1 = 0.0,
+                    kxday1 = 0.0,             // this and above used in getsoilwetness
+                    transpiration_tree = 0.0, // used in multiple functions, need to preserve old value
+                    transpiration = 0.0, 
+                    transpirationsh = 0.0, 
+                    md = 0.0, 
+                    mdsh = 0.0,                // need to preserve this and three above so during night we still retain values
+                    rmean = 0.0,
                     // waterold,        // read from previous dd
-                    b_fatigue[3][10],   // [0, :] is roots, [1, :] is stem, [2, :] is leaves
-                    ecritsystem,
-                    pcritsystem,
-                    kmin,               // k-min for the plant
-                    e_p[CURVE_MAX] = {0};    // whole plant transpiration curve, likely not needed now since only one xylem is typically used
+                    b_fatigue[3][10] = {{0.0}},   // [0, :] is roots, [1, :] is stem, [2, :] is leaves
+                    ecritsystem = 0.0,
+                    pcritsystem = 0.0,
+                    kmin = 0.0,               // k-min for the plant
+                    e_p[CURVE_MAX] = {0.0};    // whole plant transpiration curve, likely not needed now since only one xylem is typically used
 
         long        gs_yearIndex = 0,       // this is a counter from 0 (for the first year) indicating how many years have passed
-                                        // get the actual year from gs_ar_years(gs_yearIndex)
-                                        // this avoids having to make year an input column in the model -- will just count how many years have passed when running
-                    gs_prevDay,
-                    year_cur, 
-                    year_start,         // not to be confused with the year array index, which is year_cur - year_start
-                    yearVal;            // the temporary variable where we hold the year read from the sheet
+                        // get the actual year from gs_ar_years(gs_yearIndex)
+                        // this avoids having to make year an input column in the model -- will just count how many years have passed when running
+                    gs_prevDay = 0,
+                    year_cur = 0, 
+                    year_start = 0,         // not to be confused with the year array index, which is year_cur - year_start
+                    yearVal = 0;            // the temporary variable where we hold the year read from the sheet
 
-        std::vector<double> water,
-                            fc;
-        std::vector<std::vector<double>> jmatrix;
+        std::vector<double> water = {},
+                            fc = {};
+        std::vector<std::vector<double>> jmatrix = {};
 
         /* 
             Per Venturas et al. 2018.

@@ -35,17 +35,17 @@ class Component {
                 p_crit = 0,         // critical pressure, of VC
                 k_min = 0,
                 pressure = 0;       // downstream pressure used in composite calculations
-        std::vector<double> wb_fatigue;
-        double e_p[CURVE_MAX] = {};    // E(P) curve for component
-        double e_pv[CURVE_MAX] = {};   // Virgin E(P) curve
-        double e_comp[CURVE_MAX] = {};
-        double e_pt[CURVE_MAX] = {};   // Historical curve
-        double k[CURVE_MAX] = {};      // K (conductivity) curve for component
-        double k_v[CURVE_MAX] = {};    // Virgin K (conductivity) curve for component
-        double k_comp[CURVE_MAX] = {}; // New(conductivity) curve for component based on other components
-        double k_t[CURVE_MAX] = {};    // Historical curve
-        double pressure_comp[CURVE_MAX] = {};
-        double pressure_v[CURVE_MAX] = {}; // virgin pressure curve
+        std::vector<double> wb_fatigue = {0.0};
+        double e_p[CURVE_MAX] = {0.0};    // E(P) curve for component
+        double e_pv[CURVE_MAX] = {0.0};   // Virgin E(P) curve
+        double e_comp[CURVE_MAX] = {0.0};
+        double e_pt[CURVE_MAX] = {0.0};   // Historical curve
+        double k[CURVE_MAX] = {0.0};      // K (conductivity) curve for component
+        double k_v[CURVE_MAX] = {0.0};    // Virgin K (conductivity) curve for component
+        double k_comp[CURVE_MAX] = {0.0}; // New(conductivity) curve for component based on other components
+        double k_t[CURVE_MAX] = {0.0};    // Historical curve
+        double pressure_comp[CURVE_MAX] = {0.0};
+        double pressure_v[CURVE_MAX] = {0.0}; // virgin pressure curve
 
     public:
 

@@ -9,39 +9,39 @@ class CarbonAssimilationModel {
 
     public:
 
-        double ca,
-               cinc,
-               cincsh,
-               atree,
-               qsl,
-               qsh,
-               psynmax,
-               psynmaxsh,
-               psynact,
-               psynactsh;
+        double ca = 0.0,
+               cinc = 0.0,
+               cincsh = 0.0,
+               atree = 0.0,
+               qsl = 0.0,
+               qsh = 0.0,
+               psynmax = 0.0,
+               psynmaxsh = 0.0,
+               psynact = 0.0,
+               psynactsh = 0.0;
 
-        double gcanwmd,
-               gcanwshmd,
-               gcancmd,
-               gcancshmd,
-               cinmd,
-               cinshmd,
-               psynmaxmd,
-               psynmaxshmd,
-               gcmd,
-               gcmdsh;
+        double gcanwmd = 0.0,
+               gcanwshmd = 0.0,
+               gcancmd = 0.0,
+               gcancshmd = 0.0,
+               cinmd = 0.0,
+               cinshmd = 0.0,
+               psynmaxmd = 0.0,
+               psynmaxshmd = 0.0,
+               gcmd = 0.0,
+               gcmdsh = 0.0;
 
-        double cin[CURVE_MAX],
-               cinsh[CURVE_MAX],
-               psyn[CURVE_MAX],
-               psynsh[CURVE_MAX],
-               psynmd[CURVE_MAX],
-               psynshmd[CURVE_MAX],
-               psync[CURVE_MAX],
-               gcanw[CURVE_MAX],
-               gcanc[CURVE_MAX],
-               gcanwsh[CURVE_MAX],
-               gcancsh[CURVE_MAX];
+        double cin[CURVE_MAX] = {0},
+               cinsh[CURVE_MAX] = {0},
+               psyn[CURVE_MAX] = {0},
+               psynsh[CURVE_MAX] = {0},
+               psynmd[CURVE_MAX] = {0},
+               psynshmd[CURVE_MAX] = {0},
+               psync[CURVE_MAX] = {0},
+               gcanw[CURVE_MAX] = {0},
+               gcanc[CURVE_MAX] = {0},
+               gcanwsh[CURVE_MAX] = {0},
+               gcancsh[CURVE_MAX] = {0};
 
         void clearParameters();
 

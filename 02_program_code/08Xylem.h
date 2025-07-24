@@ -23,19 +23,19 @@
 struct SoilLayer {
     RootComponent root;
     RhizosphereComponent rhizosphere;
-    double  biomass_fraction,
-            kkmax,
-            vert_distance,
-            layer_depth,
-            depth,
-            radius,
-            length,
-            swclimit,
-            soilredist,
-            flow,
-            predawn_pressure;
-    bool    cavitated = 0;
-    bool    cavitated_t = 0;
+    double  biomass_fraction = 0.0,
+            kkmax = 0.0,
+            vert_distance = 0.0,
+            layer_depth = 0.0,
+            depth = 0.0,
+            radius = 0.0,
+            length = 0.0,
+            swclimit = 0.0,
+            soilredist = 0.0,
+            flow = 0.0,
+            predawn_pressure = 0.0;
+    bool    cavitated = false;
+    bool    cavitated_t = false;
     std::string  failure;
     std::string  failure_t;
 };
@@ -57,9 +57,9 @@ class XylemComponent {
         double root_pressure[CURVE_MAX] = {0}; // composite root pressure
         
         /* Used for something! */
-        double rough,
-               zdispl,
-               zh;
+        double rough = 0,
+               zdispl = 0,
+               zh = 0;
 
         void cleanParameters();
 

@@ -7,35 +7,33 @@ class LeafComponent : public Component {
     
     public:
 
-        double lavpd[CURVE_MAX],        // Leaf-to-air vapor pressure deficit
-                                        // 'saturated mole fraction'
-               lavpdsh[CURVE_MAX],      // Above but shade
-               leaftemp[CURVE_MAX],     // Leaf temp in C
-               leaftempsh[CURVE_MAX],
-               eplantl[CURVE_MAX];      // Transpiration of plant in leaf area
-                                        // mol m-2s-1 (per leaf area)
+        double lavpd[CURVE_MAX] = {0.0},        // Leaf-to-air vapor pressure deficit
+               lavpdsh[CURVE_MAX] = {0.0},      // Above but shade
+               leaftemp[CURVE_MAX] = {0.0},     // Leaf temp in C
+               leaftempsh[CURVE_MAX] = {0.0},
+               eplantl[CURVE_MAX] = {0.0};      // Transpiration of plant in leaf area
 
         // Midday attributes, same as above
-        double emd,
-               lavpdmd,
-               lavpdshmd,
-               leaftmd,
-               leaftshmd;
+        double emd = 0.0,
+               lavpdmd = 0.0,
+               lavpdshmd = 0.0,
+               leaftmd = 0.0,
+               leaftshmd = 0.0;
         
         // Parameters used in solarcalc()
-        double ssun,
-               sshade,
-               sref,
-               sbottom,
-               emiss,
-               la,
-               lg,
-               lai,
-               laisl,
-               laish,
-               lambda,
-               grad,
-               gha;
+        double ssun = 0.0,
+               sshade = 0.0,
+               sref = 0.0,
+               sbottom = 0.0,
+               emiss = 0.0,
+               la = 0.0,
+               lg = 0.0,
+               lai = 0.0,
+               laisl = 0.0,
+               laish = 0.0,
+               lambda = 0.0,
+               grad = 0.0,
+               gha = 0.0;
 
         void cleanParameters() override;
         

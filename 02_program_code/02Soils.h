@@ -11,9 +11,9 @@ class RhizosphereComponent : public Component {
 
     private:
         
-        double van_gen_alpha;
-        double van_gen_n;
-        double thetasat;
+        double van_gen_alpha = 0.0;
+        double van_gen_n = 0.0;
+        double thetasat = 0.0;
 
     public:
 

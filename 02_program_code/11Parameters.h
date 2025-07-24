@@ -29,8 +29,8 @@ class Parameters {
         std::vector<double> gs_ar_ppm;
 
         /* Saved weibull params */
-        double stem_b_wb[MAX_YEARS] = {};
-        double root_b_wb[MAX_YEARS] = {};
+        double stem_b_wb[MAX_YEARS] = {0.0};
+        double root_b_wb[MAX_YEARS] = {0.0};
     
     public:
 
