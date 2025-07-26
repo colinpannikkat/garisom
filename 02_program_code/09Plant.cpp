@@ -1562,13 +1562,13 @@ fortyMarker:
 
         // TODO since all IO is being handled as double currently, cannot add these failure notes
         // temporarily putting in an obvious number to flag failure
-        for (int z = 1; z <= layers; z++)//z = 1 To 1
-        {
-            std::ostringstream oss;
-            oss << "Layer-" << z << "-failure";
-            if (xylem.soils[z]->cavitated == 1)
-                data.setColumnValue(-1137, dd, oss.str()); // xylem.soils[z]->failure; //'layers failed at critical point
-        } //end for z
+        // for (int z = 1; z <= layers; z++)//z = 1 To 1
+        // {
+        //     std::ostringstream oss;
+        //     oss << "Layer-" << z << "-failure";
+        //     if (xylem.soils[z]->cavitated == 1)
+        //         data.setColumnValue(-1137, dd, oss.str()); // xylem.soils[z]->failure; //'layers failed at critical point
+        // } //end for z
 
         //Debug.Print "DOING A LOOP-9 " & dd
     }// //'failure IF (basically...failure can//'t happen!)
