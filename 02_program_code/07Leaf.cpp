@@ -9,7 +9,7 @@
  *
  * @param p Index of the plant or leaf for which calculations are performed.
  * @param airtemp Ambient air temperature (in degrees Celsius).
- * @param eplant Array of plant transpiration rates (in mol m^-2 s^-1).
+ * @param eplant Array of plant transpiration rates (in kg hr-1 m-2 basal area).
  * @param vpd Vapor pressure deficit of the air (in kPa).
  * @param wind Wind speed (in m s^-1).
  * @param laperba Leaf area per unit ground area (dimensionless).
