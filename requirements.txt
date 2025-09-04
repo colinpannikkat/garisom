@@ -7,4 +7,3 @@ timezonefinder
 pytz
 tqdm
 requests
-SALib

@@ -39,7 +39,7 @@ __b)__ To build and run from the terminal in a Linux/Mac OS (*nix) system:
 __b.1)__ Clone the repository in a desired location in your system.
 
 ```
-git clone https://github.com/gevargu/garisom.git
+git clone https://github.com/colinpannikkat/garisom.git
 ```
 
 __b.2)__ Navigate to the repository by usin the command cd:
@@ -60,12 +60,13 @@ __b.4)__ Run this program from the same folder with this command:
 ./run [param_data_file] [config_data_file] [config_setting] [output_path]
 ```
 
-The `param_data_file`, `config_data_file`, and `config_setting` are optional command line arguments. If not provided, the default file paths will be used which are defined in `01Utilities.h`.
+The `param_data_file`, `config_data_file`, `config_setting`, and `output_path` are optional command line arguments. If not provided, the default file paths will be used which are defined in `01Utilities.h`.
 
 ```c++
 #define CONFIG_FILE_PATH "../03_test_data/configuration.csv" // path to configuration file
 #define PARAMETER_FILE_PATH "../03_test_data/parameters.csv" // path to parameter file
 #define CONFIG_SETTING 0                                     // which configuration to use (this is 0-indexed)
+#define OUT_DIR "."                                          // default output directory path
 ```
 You may also run `./run --help` for more explicit usage instructions.
 
@@ -75,8 +76,10 @@ The following files (included in this repository) should be located in the worki
 	
   - __parameters.csv__ (site, atmospheric, soils, stand, plant, hydraulics, and carbon assimilation parameters).
   - __configuration.csv__ (model controls)
-  - __dataset.csv__ (hourly weather drivers).
   - __dataheader.csv__ (a header row for the hourly data output).
+
+The following files will have their paths stored in **configuration.csv**.
+  - __dataset.csv__ (hourly weather drivers).
   - __seasonlimits.csv__ (growing season limits and yearly atmospheric CO2, only required if using "sequential year mode" described below)
 
 You can also provide a relative directory path to **parameters.csv** and **configuration.csv** for input to the model. If the files were built using `file_builder.py`, the seasonlimits and dataset files will automatically be inputted with absolute file paths.
