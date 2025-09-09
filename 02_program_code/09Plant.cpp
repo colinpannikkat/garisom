@@ -634,14 +634,6 @@ void Plant::readin() { //'inputs and calculates all parameters at the start
     carbon.ca = temp;
     param_data.getColumnValue(temp, "i_emiss", species_no); // long wave emissivity
     param.setModelParam(temp, "emiss");
-
-    // absorptivity values for solarcalc
-    param_data.getColumnValue(temp, "abs_nir", species_no);
-    param.setModelParam(temp, "abs_nir");
-    param_data.getColumnValue(temp, "abs_par", species_no);
-    param.setModelParam(temp, "abs_par");
-    param_data.getColumnValue(temp, "abs_solar", species_no);
-    param.setModelParam(temp, "abs_solar");
     
     // soil
     param_data.getColumnValue(temp, "i_layers", species_no); // number of soil layers
@@ -2925,9 +2917,9 @@ void Plant::solarcalc(const int &dd,
     patm = param.getModelParam("p_atm");
     xang = param.getModelParam("leaf_angle_param");
 
-    double abs_nir = param.getModelParam("abs_nir");
-    double abs_par = param.getModelParam("abs_par");
-    double abs_solar = param.getModelParam("abs_solar");
+    double abs_nir = ABS_NIR;
+    double abs_par = ABS_PAR;
+    double abs_solar = ABS_SOLAR;
 
     //'j = Cells(14 + i, 3) //'julian day
     fet = 279.575 + 0.9856 * jd; //'jd is julian day, fet is factor for CN eqn 11.4
