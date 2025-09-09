@@ -1334,8 +1334,25 @@ twentyMarker:
             break;
         }
         test = compositeCurve(e, p, total); //'stores the entire composite curve for every P_c = p
-        xylem.leaf.temp(p, airtemp, xylem.e_p, vpd, wind, laperba, param.getModelParam("leaf_width"), param.getModelParam("p_atm")); //'gets sun layer leaf temperature from energy balance
-        xylem.leaf.tempShade(p, airtemp, param.getModelParam("p_atm"), vpd); //'gets shade layer leaf temperature
+       
+        /* If there is leaf temperature data then use that, otherwise calculate according to C&H. */
+        if (data.getColumnValue("leaftemp", dd) == 0.) {
+            xylem.leaf.temp(p, airtemp, xylem.e_p, vpd, wind, laperba, param.getModelParam("leaf_width"), param.getModelParam("p_atm")); //'gets sun layer leaf temperature from energy balance
+            xylem.leaf.tempShade(p, airtemp, param.getModelParam("p_atm"), vpd); //'gets shade layer leaf temperature
+        } else {
+            xylem.leaf.leaftemp[p] = data.getColumnValue("leaftemp", dd);
+            xylem.leaf.eplantl[p] = xylem.e_p[p] * (1.0 / laperba) * (1.0 / 3600.0) * 55.4; //'convert to E per leaf area in mol m-2s-1
+            xylem.leaf.lavpd[p] = (101.3 / patm) * (-0.0043 + 0.01 * exp(0.0511 * airtemp)); //'saturated mole fraction of vapor in air
+            xylem.leaf.lavpd[p] = (101.3 / patm) * (-0.0043 + 0.01 * exp(0.0511 * xylem.leaf.leaftemp[p])) - xylem.leaf.lavpd[p] + vpd; //'leaf-to-air vpd
+            if (xylem.leaf.lavpd[p] < 0)
+                xylem.leaf.lavpd[p] = 0; //'don//'t allow negative lavpd
+            xylem.leaf.leaftempsh[p] = data.getColumnValue("leaftemp", dd);
+            xylem.leaf.lavpdsh[p] = (101.3 / patm) * (-0.0043 + 0.01 * exp(0.0511 * airtemp)); //'saturated mole fraction of vapor in air
+            xylem.leaf.lavpdsh[p] = (101.3 / patm) * (-0.0043 + 0.01 * exp(0.0511 * xylem.leaf.leaftempsh[p])) - xylem.leaf.lavpdsh[p] + vpd; //'leaf-to-air vpd
+            if (xylem.leaf.lavpdsh[p] < 0)
+                xylem.leaf.lavpdsh[p] = 0; //'don//'t allow negative lavpd
+            xylem.leaf.eplantl[p] = xylem.leaf.eplantl[p] * 1000; //'convert to mmol m-2 s-1
+        }
         carbon.assimilation(p, 
                             param.getModelParam("g_max"), 
                             param.getModelParam("q_max"), 
@@ -3161,10 +3178,11 @@ void Plant::canopypressure(const int &dd,
            dedplmin = 0.0;
 
     // Need to declare in function because sometimes definition is skipped by markers
+    double patm = param.getModelParam("p_atm");
     double vpd = data.getColumnValue("D-MD", dd); //'midday vpd in kPa
-    vpd = vpd / param.getModelParam("p_atm"); //'vpd in mole fraction
+    vpd = vpd / patm; //'vpd in mole fraction
     double airtemp = data.getColumnValue("T-air", dd); //'in C
-    double maxvpd = (101.3 / param.getModelParam("p_atm")) * (-0.0043 + 0.01 * exp(0.0511 * airtemp)); //'saturated mole fraction of vapor in air
+    double maxvpd = (101.3 / patm) * (-0.0043 + 0.01 * exp(0.0511 * airtemp)); //'saturated mole fraction of vapor in air
     double wind = data.getColumnValue("wind", dd); //'wind speed
     double laperba = param.getModelParam("leaf_per_basal");
 
@@ -3174,7 +3192,7 @@ void Plant::canopypressure(const int &dd,
     }//
     if (vpd > maxvpd) { //if//
         vpd = maxvpd;
-        data.setColumnValue(maxvpd * param.getModelParam("p_atm"), dd, "D-MD"); //'print out maximum vpd
+        data.setColumnValue(maxvpd * patm, dd, "D-MD"); //'print out maximum vpd
     }//
 
     //computes carbon-based middays; pressures and cost curve from virgin supply function, gas exchange from historical values
@@ -3260,8 +3278,27 @@ void Plant::canopypressure(const int &dd,
                 break; //gone to failure
                     //now get virgin A curve
 
-            xylem.leaf.tempMd(p, e, airtemp, vpd, wind, laperba, param.getModelParam("leaf_width"), param.getModelParam("p_atm")); //gets virgin sun layer leaf temperature from energy balance
-            xylem.leaf.tempShadeMd(p, e, airtemp, vpd, param.getModelParam("p_atm")); //gets virgin shade layer leaf temperature
+            /* Get midday leaf temperature values (at 12pm) */
+            int midday_timestep = dd - (this->tod - 12);
+
+            if (data.getColumnValue("leaftemp", dd) == 0.) {
+                xylem.leaf.tempMd(p, e, airtemp, vpd, wind, laperba, param.getModelParam("leaf_width"), patm); //gets virgin sun layer leaf temperature from energy balance
+                xylem.leaf.tempShadeMd(p, e, airtemp, vpd, patm); //gets virgin shade layer leaf temperature
+            } else {
+                xylem.leaf.leaftmd = data.getColumnValue("leaftemp", midday_timestep);
+                xylem.leaf.emd = e * (1.0 / laperba) * (1.0 / 3600.0) * 55.4; //'convert to E per leaf area in mol m-2s-1
+                xylem.leaf.lavpdmd = (101.3 / patm) * (-0.0043 + 0.01 * exp(0.0511 * airtemp)); //'saturated mole fraction of vapor in air
+                xylem.leaf.lavpdmd = (101.3 / patm) * (-0.0043 + 0.01 * exp(0.0511 * xylem.leaf.leaftmd)) - xylem.leaf.lavpdmd + vpd; //'leaf-to-air vpd
+                if (xylem.leaf.lavpdmd < 0)
+                    xylem.leaf.lavpdmd = 0; //'don//'t allow negative lavpd
+
+                xylem.leaf.leaftshmd = data.getColumnValue("leaftemp", midday_timestep);
+                xylem.leaf.lavpdshmd = (101.3 / patm) * (-0.0043 + 0.01 * exp(0.0511 * airtemp)); //'saturated mole fraction of vapor in air
+                xylem.leaf.lavpdshmd = (101.3 / patm) * (-0.0043 + 0.01 * exp(0.0511 * xylem.leaf.leaftshmd)) - xylem.leaf.lavpdshmd + vpd; //'leaf-to-air vpd
+                if (xylem.leaf.lavpdshmd < 0)
+                    xylem.leaf.lavpdshmd = 0; //'don//'t allow negative lavpd
+                xylem.leaf.emd = xylem.leaf.emd * 1000; //'convert to mmol m-2 s-1
+            }
             carbon.assimilationMd(p, 
                                 param.getModelParam("g_max"), 
                                 param.getModelParam("q_max"), 
