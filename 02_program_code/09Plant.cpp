@@ -3158,7 +3158,8 @@ void Plant::canopypressure(const int &dd,
     std::vector<double> klossv(CURVE_MAX, 0.0),
                         amaxfrac(CURVE_MAX, 0.0),
                         amaxfracsh(CURVE_MAX, 0.0),
-                        dpa(CURVE_MAX, 0.0);
+                        dpa(CURVE_MAX, 0.0),
+                        emax(CURVE_MAX, 0.0);
 
     int check = 0,
         totalv = 0,
@@ -3232,6 +3233,7 @@ void Plant::canopypressure(const int &dd,
         e = -einc;
         p = -1;
         dedplmin = param.getModelParam("ksatp"); //insures the kloss function is monotonic
+        double leaf_ecrit = xylem.leaf.getEpVirgin(int(xylem.leaf.getPcrit() / param.getModelParam("p_inc")));
         double predawn = 0, plold = 0;
         do
         {
@@ -3275,6 +3277,10 @@ void Plant::canopypressure(const int &dd,
 
             xylem.leaf.tempMd(p, e, airtemp, vpd, wind, laperba, param.getModelParam("leaf_width"), param.getModelParam("p_atm")); //gets virgin sun layer leaf temperature from energy balance
             xylem.leaf.tempShadeMd(p, e, airtemp, vpd, param.getModelParam("p_atm")); //gets virgin shade layer leaf temperature
+            
+            // Calculate normalized hydraulic risk term
+            emax[p] = 1 - (xylem.leaf.emd / leaf_ecrit);
+
             carbon.assimilationMd(p, 
                                 param.getModelParam("g_max"), 
                                 param.getModelParam("q_max"), 
@@ -3350,6 +3356,12 @@ void Plant::canopypressure(const int &dd,
         do
         {
             p = p + 1;
+            
+            /* Per Zhu et al. 2023
+            max (1 - alpha) * (A(g_s)/Amax) + (alpha) * (1 - E(g_s)/Ecrit)
+            where alpha = 1 - K_c(Pl) / K_cmax --> this is just klossv
+            */
+
             amaxfrac[p] = carbon.psynmd[p] / carbon.psynmaxmd; //this is the normalized revenue function from the virgin curve
             if (amaxfrac[p] > amaxmax)
             {
@@ -3363,7 +3375,8 @@ void Plant::canopypressure(const int &dd,
                 amaxfrac[p] = 0; //no negative gains
             if (klossv[p] < 0)
                 klossv[p] = 0; //no negative risks
-            dpa[p] = amaxfrac[p] - klossv[p]; //profit, with revenue from virgin curve and cost from virgen one
+            // dpa[p] = amaxfrac[p] - klossv[p]; //profit, with revenue from virgin curve and cost from virgen one
+            dpa[p] = ((1 - klossv[p]) * amaxfrac[p]) + (klossv[p] * emax[p]);
             if (p < PROFT_MAX_RUN_MEAN - 1)
                 rmean = 0;
             if (p >= PROFT_MAX_RUN_MEAN - 1)  //get running mean
@@ -3397,26 +3410,26 @@ void Plant::canopypressure(const int &dd,
         }
 
         // [HNT] debug
-        if (!(rmean < dpamax / DPA_MAX_CUTOFF))
-        {
-            // std::cout << "Terminated sun layer opt without finding peak! At timestep dd = " << dd << std::endl;
-            if (einc * p >= param.getModelParam("g_max") * xylem.leaf.lavpd[p])
-            {
-                // std::cout << "Terminated sun layer opt without finding peak: end case 1 einc * p >= param.getModelParam('g_max') * lavpd[p]" << std::endl;
-            }
-            if (total == 0)
-            {
-                std::cout << "Terminated sun layer opt without finding peak: end case 2 total == 0" << std::endl;
-            }
-            if (p >= totalv)
-            {
-                std::cout << "Terminated sun layer opt without finding peak: end case 3 exceeded end of virgin curve" << std::endl;
-            }
-            if (klossv[p] > 0.9)
-            {
-                std::cout << "Terminated sun layer opt without finding peak: end case 4 klossv[p] > 0.9" << std::endl;
-            }
-        }
+        // if (!(rmean < dpamax / DPA_MAX_CUTOFF))
+        // {
+        //     // std::cout << "Terminated sun layer opt without finding peak! At timestep dd = " << dd << std::endl;
+        //     if (einc * p >= param.getModelParam("g_max") * xylem.leaf.lavpd[p])
+        //     {
+        //         // std::cout << "Terminated sun layer opt without finding peak: end case 1 einc * p >= param.getModelParam('g_max') * lavpd[p]" << std::endl;
+        //     }
+        //     if (total == 0)
+        //     {
+        //         std::cout << "Terminated sun layer opt without finding peak: end case 2 total == 0" << std::endl;
+        //     }
+        //     if (p >= totalv)
+        //     {
+        //         std::cout << "Terminated sun layer opt without finding peak: end case 3 exceeded end of virgin curve" << std::endl;
+        //     }
+        //     if (klossv[p] > 0.9)
+        //     {
+        //         std::cout << "Terminated sun layer opt without finding peak: end case 4 klossv[p] > 0.9" << std::endl;
+        //     }
+        // }
         // [/HNT]
 
         //while (!(einc * p >= param.getModelParam("g_max") * lavpd[p] || total == 0 || rmean < dpamax / DPA_MAX_CUTOFF && p > PROFT_MAX_RUN_MEAN || klossv[p] > 0.9 || p >= totalv));
