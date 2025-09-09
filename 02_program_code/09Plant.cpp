@@ -634,6 +634,14 @@ void Plant::readin() { //'inputs and calculates all parameters at the start
     carbon.ca = temp;
     param_data.getColumnValue(temp, "i_emiss", species_no); // long wave emissivity
     param.setModelParam(temp, "emiss");
+
+    // absorptivity values for solarcalc
+    param_data.getColumnValue(temp, "abs_nir", species_no);
+    param.setModelParam(temp, "abs_nir");
+    param_data.getColumnValue(temp, "abs_par", species_no);
+    param.setModelParam(temp, "abs_par");
+    param_data.getColumnValue(temp, "abs_solar", species_no);
+    param.setModelParam(temp, "abs_solar");
     
     // soil
     param_data.getColumnValue(temp, "i_layers", species_no); // number of soil layers
@@ -1334,8 +1342,8 @@ twentyMarker:
             break;
         }
         test = compositeCurve(e, p, total); //'stores the entire composite curve for every P_c = p
-        xylem.leaf.temp(p, airtemp, xylem.e_p, vpd, wind, laperba, param.getModelParam("leaf_width"), param.getModelParam("p_atm")); //'gets sun layer leaf temperature from energy balance
-        xylem.leaf.tempShade(p, airtemp, param.getModelParam("p_atm"), vpd); //'gets shade layer leaf temperature
+        xylem.leaf.temp(tod, p, airtemp, xylem.e_p, vpd, wind, laperba, param.getModelParam("leaf_width"), param.getModelParam("p_atm")); //'gets sun layer leaf temperature from energy balance
+        xylem.leaf.tempShade(tod, p, airtemp, param.getModelParam("p_atm"), vpd); //'gets shade layer leaf temperature
         carbon.assimilation(p, 
                             param.getModelParam("g_max"), 
                             param.getModelParam("q_max"), 
@@ -1488,6 +1496,7 @@ fortyMarker:
         data.setColumnValue(carbon.gcmd, dd, "GW"); //'midday canopy diffusive conductance to water, mmol s-1m-2
         data.setColumnValue(xylem.leaf.lavpdmd, dd, "leaf-air-vpd"); //'leaf-to-air vpd
         data.setColumnValue(xylem.leaf.leaftemp[halt], dd, "leaftemp"); //'leaf temp
+        data.setColumnValue(xylem.leaf.leaftemp[halt] - airtemp, dd, "leaf-air-temp-diff");
         data.setColumnValue(carbon.psynact, dd, "Anet-la"); //'net A in umol s-1m-2 leaf area
         data.setColumnValue(carbon.cinc * patm * 1000, dd, "ci"); //'partial pressure of CO2 in Pa
         data.setColumnValue(carbon.qsl, dd, "PPFD"); //'umol s-1m-2 photon flux density
@@ -2916,6 +2925,10 @@ void Plant::solarcalc(const int &dd,
     patm = param.getModelParam("p_atm");
     xang = param.getModelParam("leaf_angle_param");
 
+    double abs_nir = param.getModelParam("abs_nir");
+    double abs_par = param.getModelParam("abs_par");
+    double abs_solar = param.getModelParam("abs_solar");
+
     //'j = Cells(14 + i, 3) //'julian day
     fet = 279.575 + 0.9856 * jd; //'jd is julian day, fet is factor for CN eqn 11.4
     fet = fet * PI / 180.0; //'convert to radians
@@ -3027,10 +3040,10 @@ void Plant::solarcalc(const int &dd,
                             //'Cells(14 + i, 23) = kd //'output
                             //'now...compute shaded leaf ppfd, q denotes a ppfd
         qd = 0.45 * sd * 4.6; //'converts total solar diffuse to PPFD diffuse in umol m-2 s-1
-        qds = qd * (1 - exp(-(pow(ABS_PAR, 0.5) * kd * lai))) / (pow(ABS_PAR, 0.5) * kd * lai); //'mean diffuse irradiance for shaded leaves CN p. 261
-        qdt = qd * exp(-(pow(ABS_PAR, 0.5) * kd * lai)); //'diffuse irradiance at bottom of canopy, CN p. 255, Eqn 15.6
+        qds = qd * (1 - exp(-(pow(abs_par, 0.5) * kd * lai))) / (pow(abs_par, 0.5) * kd * lai); //'mean diffuse irradiance for shaded leaves CN p. 261
+        qdt = qd * exp(-(pow(abs_par, 0.5) * kd * lai)); //'diffuse irradiance at bottom of canopy, CN p. 255, Eqn 15.6
         qb = 0.45 * sb * 4.6; //'converts total solar beam to PPFD
-        qbt = qb * exp(-(pow(ABS_PAR, 0.5) * kbe * lai)); //'direct AND downscattered PPFD at bottom of canopy, CN 15.6
+        qbt = qb * exp(-(pow(abs_par, 0.5) * kbe * lai)); //'direct AND downscattered PPFD at bottom of canopy, CN 15.6
         qb = qb * exp(-(kbe * lai)); //'direct PPFD at bottom of canopy,CN 15.1
         qsc = (qbt - qb) / 2.0; //'average backscattered beam on shaded leaves
         qsh = qds + qsc; //'average PPFD incident (not absorbed!) on shaded leaves
@@ -3048,11 +3061,11 @@ void Plant::solarcalc(const int &dd,
                                         //'in near-infrared range (assume same equations as for PAR, but different absorptances and incoming fluxes in Wm-2
                                         //'absnir = Cells(9, 17) //'absorptivity of leaves to NIR
         qd = 0.55 * sd; //'converts total solar diffuse to NIR diffuse in Wm-2
-        qds = qd * (1 - exp(-(pow(ABS_NIR, 0.5) * kd * lai))) / (pow(ABS_NIR, 0.5) * kd * lai); //'mean diffuse nir irradiance for shaded leaves CN p. 261
-        qdt = qd * exp(-(pow(ABS_NIR, 0.5) * kd * lai)); //'diffuse NIR irradiance at bottom of canopy, CN p. 255, Eqn 15.6
+        qds = qd * (1 - exp(-(pow(abs_nir, 0.5) * kd * lai))) / (pow(abs_nir, 0.5) * kd * lai); //'mean diffuse nir irradiance for shaded leaves CN p. 261
+        qdt = qd * exp(-(pow(abs_nir, 0.5) * kd * lai)); //'diffuse NIR irradiance at bottom of canopy, CN p. 255, Eqn 15.6
         qb = 0.55 * sb; //'converts total solar beam to NIR
                         //'qb = 1600
-        qbt = qb * exp(-(pow(ABS_NIR, 0.5) * kbe * lai)); //'direct AND downscattered NIR at bottom of canopy, CN 15.6
+        qbt = qb * exp(-(pow(abs_nir, 0.5) * kbe * lai)); //'direct AND downscattered NIR at bottom of canopy, CN 15.6
         qb = qb * exp(-(kbe * lai)); //'direct NIR at bottom of canopy,CN 15.1, using same extinction coefficient as for PAR
         qsc = (qbt - qb) / 2.0; //'average backscattered beam on shaded leaves
         nirsh = (qds + qsc); //'incident NIR on shaded leaves, 100% diffuse
@@ -3064,8 +3077,8 @@ void Plant::solarcalc(const int &dd,
         ssunb = sb / st * ssun; //'beam solar on sunlit (an approximation)
         ssund = sd / st * ssun;//'diffuse solar on sunlit (approximation)
                                 //'abssolar = Cells(8, 17) //'absorptivity of leaves for total solar (0.5)
-        sref = (1 - ABS_SOLAR) * sshade; //'reflected light...this used for sun/shade dichotomy
-        sref = (1 - ABS_SOLAR) * xylem.leaf.sbottom; //'reflected light for monolayer version
+        sref = (1 - abs_solar) * sshade; //'reflected light...this used for sun/shade dichotomy
+        sref = (1 - abs_solar) * xylem.leaf.sbottom; //'reflected light for monolayer version
                                         //'these below are used for monolayer version:
         par = 0.45 * st; //'wm-2 in par wavelength...45% of total solar
         ppfd = par * 4.6; //'assumes 4.6 moles photons per Joule conversion factor
@@ -3260,8 +3273,8 @@ void Plant::canopypressure(const int &dd,
                 break; //gone to failure
                     //now get virgin A curve
 
-            xylem.leaf.tempMd(p, e, airtemp, vpd, wind, laperba, param.getModelParam("leaf_width"), param.getModelParam("p_atm")); //gets virgin sun layer leaf temperature from energy balance
-            xylem.leaf.tempShadeMd(p, e, airtemp, vpd, param.getModelParam("p_atm")); //gets virgin shade layer leaf temperature
+            xylem.leaf.tempMd(tod, p, e, airtemp, vpd, wind, laperba, param.getModelParam("leaf_width"), param.getModelParam("p_atm")); //gets virgin sun layer leaf temperature from energy balance
+            xylem.leaf.tempShadeMd(tod, p, e, airtemp, vpd, param.getModelParam("p_atm")); //gets virgin shade layer leaf temperature
             carbon.assimilationMd(p, 
                                 param.getModelParam("g_max"), 
                                 param.getModelParam("q_max"), 
