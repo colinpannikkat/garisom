@@ -1342,7 +1342,7 @@ twentyMarker:
             break;
         }
         test = compositeCurve(e, p, total); //'stores the entire composite curve for every P_c = p
-        xylem.leaf.temp(p, airtemp, xylem.e_p, vpd, wind, laperba, param.getModelParam("leaf_width"), param.getModelParam("p_atm")); //'gets sun layer leaf temperature from energy balance
+        xylem.leaf.temp(p, obssolar, this->albedo_soil, this->absorption_short, param.getModelParam("emiss"), airtemp, xylem.e_p, vpd, wind, laperba, param.getModelParam("leaf_width"), param.getModelParam("p_atm")); //'gets sun layer leaf temperature from energy balance
         xylem.leaf.tempShade(p, airtemp, param.getModelParam("p_atm"), vpd); //'gets shade layer leaf temperature
         carbon.assimilation(p, 
                             param.getModelParam("g_max"), 
@@ -3177,6 +3177,7 @@ void Plant::canopypressure(const int &dd,
     double vpd = data.getColumnValue("D-MD", dd); //'midday vpd in kPa
     vpd = vpd / param.getModelParam("p_atm"); //'vpd in mole fraction
     double airtemp = data.getColumnValue("T-air", dd); //'in C
+    double obssolar = data.getColumnValue("solar", dd);
     double maxvpd = (101.3 / param.getModelParam("p_atm")) * (-0.0043 + 0.01 * exp(0.0511 * airtemp)); //'saturated mole fraction of vapor in air
     double wind = data.getColumnValue("wind", dd); //'wind speed
     double laperba = param.getModelParam("leaf_per_basal");
@@ -3273,7 +3274,7 @@ void Plant::canopypressure(const int &dd,
                 break; //gone to failure
                     //now get virgin A curve
 
-            xylem.leaf.tempMd(p, e, airtemp, vpd, wind, laperba, param.getModelParam("leaf_width"), param.getModelParam("p_atm")); //gets virgin sun layer leaf temperature from energy balance
+            xylem.leaf.tempMd(p, obssolar, this->albedo_soil, this->absorption_short, param.getModelParam("emiss"), e, airtemp, vpd, wind, laperba, param.getModelParam("leaf_width"), param.getModelParam("p_atm")); //gets virgin sun layer leaf temperature from energy balance
             xylem.leaf.tempShadeMd(p, e, airtemp, vpd, param.getModelParam("p_atm")); //gets virgin shade layer leaf temperature
             carbon.assimilationMd(p, 
                                 param.getModelParam("g_max"), 

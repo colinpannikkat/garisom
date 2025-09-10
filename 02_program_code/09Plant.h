@@ -104,7 +104,9 @@ class Plant {
                     ecritsystem = 0.0,
                     pcritsystem = 0.0,
                     kmin = 0.0,               // k-min for the plant
-                    e_p[CURVE_MAX] = {0.0};    // whole plant transpiration curve, likely not needed now since only one xylem is typically used
+                    e_p[CURVE_MAX] = {0.0},    // whole plant transpiration curve, likely not needed now since only one xylem is typically used
+                    albedo_soil = 0.2,
+                    absorption_short = 0.5;
 
         long        gs_yearIndex = 0,       // this is a counter from 0 (for the first year) indicating how many years have passed
                         // get the actual year from gs_ar_years(gs_yearIndex)

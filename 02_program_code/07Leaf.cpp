@@ -34,6 +34,10 @@
  *   into mmol m-2 s-1.
  */
 void LeafComponent::temp(const int p,
+                         const double &r_sw,
+                         const double &al_s,  // soil albedo
+                         const double &a_s,   // short wave absorption
+                         const double &a_l,   // long wave absorption
                          const double &airtemp,
                          const double eplant[],
                          const double &vpd,
@@ -42,7 +46,12 @@ void LeafComponent::temp(const int p,
                          const double &leafwidth,
                          const double &patm)  
 {
-    double rabs = 0.5 * (0.5 * ssun + 0.5 * sref) + emiss * (0.5 * la + 0.5 * lg); //'total absorbed radiation for sun leaves; CN 11.14
+    // double rabs = 0.5 * (0.5 * ssun + 0.5 * sref) + emiss * (0.5 * la + 0.5 * lg); //'total absorbed radiation for sun leaves; CN 11.14
+    /* Rabs per tealeaves */
+
+    double tsky = airtemp - (20 * r_sw / 1e3);
+    double rabs = a_s * (1 + al_s) * r_sw + a_l * SBC * (pow(airtemp, 4) + pow(tsky, 4));
+
     lambda = -42.9143 * airtemp + 45064.3; //'heat of vaporization for water at air temp in J mol-1
     grad = 0.1579 + 0.0017 * airtemp + 0.00000717 * pow(airtemp, 2); //'radiative conductance (long wave) at air temp in mol m-2 s-1
     gha = 1.4 * 0.135 * pow((wind / leafwidth), 0.5); //'heat conductance in mol m-2s-1
@@ -129,7 +138,11 @@ void LeafComponent::tempShade(const int &p,
  * - This must be called before tempShade, as tempShade will the convert eplantlp 
  *   into mmol m-2 s-1.
  */
-void LeafComponent::tempMd(const int &p,
+void LeafComponent::tempMd(const int p,
+                           const double &r_sw,
+                           const double &al_s,  // soil albedo
+                           const double &a_s,   // short wave absorption
+                           const double &a_l,   // long wave absorption
                            const double &e,
                            const double &airtemp,
                            const double &vpd,
@@ -138,7 +151,13 @@ void LeafComponent::tempMd(const int &p,
                            const double &leafwidth,
                            const double &patm)  
 {
-    double rabs = 0.5 * (0.5 * ssun + 0.5 * sref) + emiss * (0.5 * la + 0.5 * lg); //'total absorbed radiation for sun leaves; CN 11.14
+    // double rabs = 0.5 * (0.5 * ssun + 0.5 * sref) + emiss * (0.5 * la + 0.5 * lg); //'total absorbed radiation for sun leaves; CN 11.14
+
+    /* Rabs per tealeaves */
+
+    double tsky = airtemp - (20 * r_sw / 1e3);
+    double rabs = a_s * (1 + al_s) * r_sw + a_l * SBC * (pow(airtemp, 4) + pow(tsky, 4));
+    
     lambda = -42.9143 * airtemp + 45064.3; //'heat of vaporization for water at air temp in J mol-1
     grad = 0.1579 + 0.0017 * airtemp + 0.00000717 * pow(airtemp, 2); //'radiative conductance (long wave) at air temp in mol m-2 s-1
     gha = 1.4 * 0.135 * pow((wind / leafwidth), 0.5); //'heat conductance in mol m-2s-1
