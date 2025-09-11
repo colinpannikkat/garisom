@@ -1,6 +1,58 @@
 #include "07Leaf.h"
 
 /**
+ * @brief Calculates the diffusion coefficient for a leaf component.
+ *
+ * This function computes the diffusion coefficient based on the provided leaf temperature,
+ * air temperature, atmospheric pressure, and a reference diffusion coefficient (D_0).
+ * The calculation uses a temperature-dependent scaling and adjusts for pressure.
+ *
+ * @param leaftemp The temperature of the leaf (in C). If zero, assumes leaftemp equals airtemp.
+ * @param airtemp The temperature of the air (in C).
+ * @param p The atmospheric pressure (in Pa).
+ * @param D_0 The reference diffusion coefficient at standard conditions.
+ * @return The calculated diffusion coefficient.
+ */
+double LeafComponent::calc_diffusion_coefficient(const double &leaftemp,
+                                                 const double &airtemp,
+                                                 const double &p,
+                                                 const double &D_0) 
+{
+
+    double T = 0.;
+
+    if (leaftemp != 0.) {  // leaftemp
+        T = leaftemp + airtemp + 2 * 273.15;
+    } else {
+        T = (airtemp + 273.15) * 2;  // assume leaftemp == airtemp if no leaftemp
+    }
+    
+    return D_0 * pow(T / 273.15, DIFF_COEF_INDEX) * (101.35 / p);
+}
+
+double LeafComponent::calc_nu(const double &leaftemp,
+                              const double &airtemp,
+                              const double &windspeed,
+                              const double &leafwidth)
+{
+    double v = 0.09079 * airtemp + 44.46;  // mg/m^3 molar density
+    double Re = windspeed * leafwidth / v; // Reynolds number
+
+    double deltaT = 0;
+    // Technically need to calculate virtual temperature according to Monteith and Unsworth (2013)
+    deltaT = leaftemp != 0 ? leaftemp - airtemp : 0;
+    double Gr = GRAVITY * pow(leafwidth, 3) * deltaT / ((airtemp + 273.15) * pow(v, 2)); // Grashof number
+    double nu_forced = NU_A * pow(Re, NU_N);
+    double nu_free = NU_B * pow(Gr, NU_M);
+
+    if (isnan(nu_free)) {
+        nu_free = 0;
+    }
+
+    return nu_forced + nu_free;
+}
+
+/**
  * @brief Calculates leaf temperature and leaf-to-air vapor pressure deficit (VPD).
  *
  * This function computes the leaf temperature and leaf-to-air vapor pressure deficit
@@ -54,11 +106,19 @@ void LeafComponent::temp(const int p,
 
     lambda = -42.9143 * airtemp + 45064.3; //'heat of vaporization for water at air temp in J mol-1
     grad = 0.1579 + 0.0017 * airtemp + 0.00000717 * pow(airtemp, 2); //'radiative conductance (long wave) at air temp in mol m-2 s-1
-    gha = 1.4 * 0.135 * pow((wind / leafwidth), 0.5); //'heat conductance in mol m-2s-1
+    // gha = 1.4 * 0.135 * pow((wind / leafwidth), 0.5); //'heat conductance in mol m-2s-1
+
+    // Lets just use the old leaftemp to calculate
+    double Dw = this->calc_diffusion_coefficient(leaftemp[p], airtemp, patm * 1000, 21.2 * 10e-6);
+    double Nu = this->calc_nu(leaftemp[p], airtemp, wind, leafwidth);
+
+    gha = Dw * Nu / leafwidth;
+    
     eplantl[p] = eplant[p] * (1.0 / laperba) * (1.0 / 3600.0) * 55.4; //'convert to E per leaf area in mol m-2s-1
     double numerator = rabs - emiss * SBC * pow((airtemp + 273.2), 4) - lambda * eplantl[p] / 2.0; //'divide E by 2 because energy balance is two sided.
     double denominator = SHA * (grad + gha);
     leaftemp[p] = airtemp + numerator / denominator; //'leaf temp for supply function
+
     lavpd[p] = (101.3 / patm) * (-0.0043 + 0.01 * exp(0.0511 * airtemp)); //'saturated mole fraction of vapor in air
     lavpd[p] = (101.3 / patm) * (-0.0043 + 0.01 * exp(0.0511 * leaftemp[p])) - lavpd[p] + vpd; //'leaf-to-air vpd
     if (lavpd[p] < 0)

@@ -71,6 +71,13 @@
 #define ABS_PAR 0.8                 // Absorptivity of PAR for leaves
 #define ABS_NIR 0.2                 // Absorptivity of near infrared for leaves
 #define MAX_YEARS 90
+#define GRAVITY 9.81                // Acceleration due to gravity, m/s^2
+/* See Monteith and Unsworth / tealeaves */
+#define DIFF_COEF_INDEX 1.7         // Diffusion coefficient index for diffusion coefficient calc
+#define NU_A 0.60                   // Forced Nu constant a
+#define NU_N 0.5                    // Forced Nu constant n
+#define NU_B 0.5                    // Free Nu constant b
+#define NU_M 0.25                   // Free Nu constant m
 
 // Iteration Limits
 

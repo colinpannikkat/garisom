@@ -36,6 +36,16 @@ class LeafComponent : public Component {
                gha = 0.0;
 
         void cleanParameters() override;
+
+        double calc_diffusion_coefficient(const double &leaftemp,
+                                          const double &airtemp,
+                                          const double &p,
+                                          const double &D_0);
+
+        double calc_nu(const double &leaftemp,
+                       const double &airtemp,
+                       const double &windspeed,
+                       const double &leafwidth);
         
         void temp(const int p,
                   const double &r_sw,
