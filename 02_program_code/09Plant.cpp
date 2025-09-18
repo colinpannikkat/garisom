@@ -3467,7 +3467,8 @@ void Plant::canopypressure(const int &dd,
                     amaxfracsh[p] = 0; //no negative gains
                 if (klossv[p] < 0)
                     klossv[p] = 0; //no negative risks
-                dpa[p] = amaxfracsh[p] - klossv[p]; //profit, with revenue from historical curve and cost from virgen one
+                // dpa[p] = amaxfracsh[p] - klossv[p]; //profit, with revenue from historical curve and cost from virgen one
+                dpa[p] = ((1 - klossv[p]) * amaxfracsh[p]) + (klossv[p] * emax[p]);
                 if (p < PROFT_MAX_RUN_MEAN - 1)
                     rmean = 0;
                 if (p >= PROFT_MAX_RUN_MEAN - 1)  //get running mean
