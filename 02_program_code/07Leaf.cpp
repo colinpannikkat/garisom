@@ -42,7 +42,10 @@ void LeafComponent::temp(const int &tod, const int p,
                          const double &leafwidth,
                          const double &patm)  
 {
-    double rabs = 0.5 * (0.5 * ssun + 0.5 * sref) + emiss * (0.5 * la + 0.5 * lg); //'total absorbed radiation for sun leaves; CN 11.14
+    // double rabs = 0.5 * (0.5 * ssun + 0.5 * sref) + emiss * (0.5 * la + 0.5 * lg); //'total absorbed radiation for sun leaves; CN 11.14
+    double rabs = 0.;
+    if (tod >= 6 and tod <= 19)  // if day
+        rabs = 750;
     lambda = -42.9143 * airtemp + 45064.3; //'heat of vaporization for water at air temp in J mol-1
     grad = 0.1579 + 0.0017 * airtemp + 0.00000717 * pow(airtemp, 2); //'radiative conductance (long wave) at air temp in mol m-2 s-1
     gha = 1.4 * 0.135 * pow((wind / leafwidth), 0.5); //'heat conductance in mol m-2s-1
@@ -81,7 +84,10 @@ void LeafComponent::tempShade(const int &tod, const int &p,
                               const double &patm,
                               const double &vpd) 
 {
-    double rabs = 0.5 * (0.5 * sshade + 0.5 * sref) + emiss * lg; //'total absorbed radiation for shaded leaves
+    // double rabs = 0.5 * (0.5 * sshade + 0.5 * sref) + emiss * lg; //'total absorbed radiation for shaded leaves
+    double rabs = 0.;
+    if (tod >= 6 and tod <= 19)  // if day
+        rabs = 750;
                                                             //'lambda = -42.9143 * airtemp + 45064.3 //'heat of vaporization for water at air temp in J mol-1
                                                             //'grad = 0.1579 + 0.0017 * airtemp + 0.00000717 * airtemp ^ 2 //'radiative conductance (long wave) at air temp in mol m-2 s-1
                                                             //'gha = 1.4 * 0.135 * (wind / leafwidth) ^ 0.5 //'heat conductance in mol m-2s-1
@@ -139,7 +145,10 @@ void LeafComponent::tempMd(const int &tod,
                            const double &leafwidth,
                            const double &patm)  
 {
-    double rabs = 0.5 * (0.5 * ssun + 0.5 * sref) + emiss * (0.5 * la + 0.5 * lg); //'total absorbed radiation for sun leaves; CN 11.14
+    // double rabs = 0.5 * (0.5 * ssun + 0.5 * sref) + emiss * (0.5 * la + 0.5 * lg); //'total absorbed radiation for sun leaves; CN 11.14
+    double rabs = 0.;
+    if (tod >= 6 and tod <= 19)  // if day
+        rabs = 750;
     lambda = -42.9143 * airtemp + 45064.3; //'heat of vaporization for water at air temp in J mol-1
     grad = 0.1579 + 0.0017 * airtemp + 0.00000717 * pow(airtemp, 2); //'radiative conductance (long wave) at air temp in mol m-2 s-1
     gha = 1.4 * 0.135 * pow((wind / leafwidth), 0.5); //'heat conductance in mol m-2s-1
@@ -181,7 +190,10 @@ void LeafComponent::tempShadeMd(const int &tod, const int &p,
                            const double &vpd,
                            const double &patm)  
 {
-    double rabs = 0.5 * (0.5 * sshade + 0.5 * sref) + emiss * lg; //'total absorbed radiation for shaded leaves
+    // double rabs = 0.5 * (0.5 * sshade + 0.5 * sref) + emiss * lg; //'total absorbed radiation for shaded leaves
+    double rabs = 0.;
+    if (tod >= 6 and tod <= 19)  // if day
+        rabs = 750;
                                                             //'lambda = -42.9143 * airtemp + 45064.3 //'heat of vaporization for water at air temp in J mol-1
                                                             //'grad = 0.1579 + 0.0017 * airtemp + 0.00000717 * airtemp ^ 2 //'radiative conductance (long wave) at air temp in mol m-2 s-1
                                                             //'gha = 1.4 * 0.135 * (wind / leafwidth) ^ 0.5 //'heat conductance in mol m-2s-1
