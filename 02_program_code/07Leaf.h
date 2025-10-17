@@ -37,7 +37,7 @@ class LeafComponent : public Component {
 
         void cleanParameters() override;
         
-        void temp(const int p,
+        void temp(const int &tod, const int p,
                   const double &airtemp,
                   const double eplant[],
                   const double &vpd,
@@ -45,11 +45,11 @@ class LeafComponent : public Component {
                   const double &laperba,
                   const double &leafwidth,
                   const double &patm);
-        void tempShade(const int &p,
+        void tempShade(const int &tod, const int &p,
                        const double &airtemp,
                        const double &patm,
                        const double &vpd);
-        void tempMd(const int &p,
+        void tempMd(const int &tod, const int &p,
                            const double &e,
                            const double &airtemp,
                            const double &vpd,
@@ -57,7 +57,7 @@ class LeafComponent : public Component {
                            const double &laperba,
                            const double &leafwidth,
                            const double &patm);
-        void tempShadeMd(const int &p,
+        void tempShadeMd(const int &tod, const int &p,
                            const double &e,
                            const double &airtemp,
                            const double &vpd,
