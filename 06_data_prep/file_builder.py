@@ -349,7 +349,7 @@ def _parse_time_series(ts_str, conv_func: Callable = None):
     - `parameters`: All parameters involved with data (header)
     - `df`: DataFrame with data
     """
-    lines = ts_str.split("\n")
+    lines = ts_str.split("Metadata for Requested Time Series:")[1].split("\n")
     parameters = {}
     for line in lines[2:11]:
         key,value = line.split("=")
@@ -358,7 +358,7 @@ def _parse_time_series(ts_str, conv_func: Callable = None):
     df = pd.read_table(io.StringIO(ts_str),
                        sep="\t",
                        names=["time","data"],
-                       header=10,
+                       header=12,
                        parse_dates=["time"])
     
     if conv_func:
