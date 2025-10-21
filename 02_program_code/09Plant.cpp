@@ -1342,8 +1342,8 @@ twentyMarker:
             break;
         }
         test = compositeCurve(e, p, total); //'stores the entire composite curve for every P_c = p
-        xylem.leaf.temp(p, airtemp, xylem.e_p, vpd, wind, laperba, param.getModelParam("leaf_width"), param.getModelParam("p_atm")); //'gets sun layer leaf temperature from energy balance
-        xylem.leaf.tempShade(p, airtemp, param.getModelParam("p_atm"), vpd); //'gets shade layer leaf temperature
+        xylem.leaf.temp(tod, p, airtemp, xylem.e_p, vpd, wind, laperba, param.getModelParam("leaf_width"), param.getModelParam("p_atm")); //'gets sun layer leaf temperature from energy balance
+        xylem.leaf.tempShade(tod, p, airtemp, param.getModelParam("p_atm"), vpd); //'gets shade layer leaf temperature
         carbon.assimilation(p, 
                             param.getModelParam("g_max"), 
                             param.getModelParam("q_max"), 
@@ -3273,8 +3273,8 @@ void Plant::canopypressure(const int &dd,
                 break; //gone to failure
                     //now get virgin A curve
 
-            xylem.leaf.tempMd(p, e, airtemp, vpd, wind, laperba, param.getModelParam("leaf_width"), param.getModelParam("p_atm")); //gets virgin sun layer leaf temperature from energy balance
-            xylem.leaf.tempShadeMd(p, e, airtemp, vpd, param.getModelParam("p_atm")); //gets virgin shade layer leaf temperature
+            xylem.leaf.tempMd(tod, p, e, airtemp, vpd, wind, laperba, param.getModelParam("leaf_width"), param.getModelParam("p_atm")); //gets virgin sun layer leaf temperature from energy balance
+            xylem.leaf.tempShadeMd(tod, p, e, airtemp, vpd, param.getModelParam("p_atm")); //gets virgin shade layer leaf temperature
             carbon.assimilationMd(p, 
                                 param.getModelParam("g_max"), 
                                 param.getModelParam("q_max"), 
