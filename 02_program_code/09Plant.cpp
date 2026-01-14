@@ -636,11 +636,11 @@ void Plant::readin() { //'inputs and calculates all parameters at the start
     param.setModelParam(temp, "emiss");
 
     // absorptivity values for solarcalc
-    param_data.getColumnValue(temp, "abs_nir", species_no);
+    param_data.getColumnValue(temp, "i_absNIR", species_no);
     param.setModelParam(temp, "abs_nir");
-    param_data.getColumnValue(temp, "abs_par", species_no);
+    param_data.getColumnValue(temp, "i_absPAR", species_no);
     param.setModelParam(temp, "abs_par");
-    param_data.getColumnValue(temp, "abs_solar", species_no);
+    param_data.getColumnValue(temp, "i_absSOLAR", species_no);
     param.setModelParam(temp, "abs_solar");
     
     // soil
