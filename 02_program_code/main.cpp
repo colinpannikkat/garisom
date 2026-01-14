@@ -12,8 +12,8 @@ int main(int argc, char *argv[])
     std::cout << std::endl;
 
     Plant *plantModel = new Plant(0);
-    std::string param_data = CONFIG_FILE_PATH;
-    std::string config_data = PARAMETER_FILE_PATH;
+    std::string param_data = PARAMETER_FILE_PATH;
+    std::string config_data = CONFIG_FILE_PATH;
     int config_setting = CONFIG_SETTING; // default to just use first row in configuration
     std::string output_dir = OUT_DIR;
 
