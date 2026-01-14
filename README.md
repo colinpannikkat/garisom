@@ -161,7 +161,7 @@ Inputs:
 
 Since the seasonlimits and climate data are homogenous for sites, output files will be split via the specified site. Therein, configuration and parameter files are outputted and built in `PATH/site/configuration.csv` and `PATH/site/parameters.csv`.
 
-If a column is missing from `datasets.csv`, it will fetch the NLDAS equivalent based on plot location.
+If a column is missing from `datasets.csv`, it will fetch the NLDAS equivalent based on plot location. In order to do this, the user must have valid authentication credentials. Please read the [earthaccess documentation](https://earthaccess.readthedocs.io/en/latest/howto/authenticate/) for more information on using a `.netrc` file, environmental variables, or directly inputting credentials.
 
 ------------
 
