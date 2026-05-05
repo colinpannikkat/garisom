@@ -16,3 +16,5 @@ sum_output.csv
 timesteps_output.csv
 
 !/02_program_code/example_out/*
+
+*.pyc
